@@ -8,7 +8,7 @@
 			"request": "launch",
 			"program": "${file}",
 			"console": "integratedTerminal",
-			"args": ["-i", "f:/projects/ggmatch/P22016", "-cpu", "1", "-mg", "1", "-epsg", "32750"]
+			"args": ["-i", "C:/sampledata/gsf"]
 		}
 	]
 }

@@ -160,19 +160,13 @@ SCALE_FACTORS     					=	100
 ###############################################################################
 def main():
 
-	# testR2SonicAdjustment()
 	testreader()
-	# conditioner()
 
 ###############################################################################
 def testreader():
+	'''sample read script so we can see how to use the code
 	'''
-	sample read script so we can see how to use the code
-	'''
-	start_time = time.time() # time the process so we can keep it quick
-
 	# filename = "C:/projects/multispectral/PatriciaBasin/20161130-1907 - 0001-2026_1.gsf"
-
 	# filename = "C:/development/python/sample_subset.gsf"
 	# filename = "F:/Projects/multispectral/_BedfordBasin2016/20160331 - 125110 - 0001-2026_1.gsf"
 	# filename = "F:/Projects/multispectral/_Newbex/20170524-134208 - 0001-2026_1.gsf"
@@ -182,7 +176,6 @@ def testreader():
 	# filename = "v:/jp/C_S20230_0491_20211228_004807.gsf"
 	# filename = "D:/LogData/gsf/20220512_161545_1_Hydro2_P21050_NEOM.gsf"
 	# filename = "C://sampledata/gsf/Block_G_X_P4000.gsf"
-
 	# filename = "C:/sampledata/gsf/IDN-ME-SR23_1-P-B46-01-CL_1075_20220530_112406.gsf"
 	# filename = "C:/sampledata/gsf/IDN-ME-SR23_1-RD14-B46-S200_0565_20220605_134739.gsf"
 	filename = "C:/sampledata/gsf/IDN-ME-SR23_1-P-B46-01-CL_1075_20220530_112406.gsf"
@@ -191,19 +184,23 @@ def testreader():
 	# filename = "F:/projects/ggmatch/lazgsfcomparisontest/IDN-JI-SR23_1-PH-B46-001_0000_20220419_162536.gsf"
 
 	print (filename)
+
 	pingcount = 0
+	start_time = time.time() # time the process so we can keep it quick
 	# create a GSFREADER class and pass the filename
 	r = GSFREADER(filename)
-	# r.loadscalefactors()
-	# navigation = r.loadnavigation()
-	# ts, roll, pitch, heave, heading = r.loadattitude()
+	navigation = r.loadnavigation()
+	for nav in navigation:
+		print (nav)
+	ts, roll, pitch, heave, heading = r.loadattitude()
 
+	print ("Demonstrating how to read entire file...")
 	while r.moreData():
-		# read a datagram.  If we support it, return the datagram type and aclass for that datagram
+		# read a datagram.  If we support it, return the datagram type and a class for that datagram
 		# The user then needs to call the read() method for the class to undertake a fileread and binary decode.  This keeps the read super quick.
 		startbyte = r.fileptr.tell()
 		numberofbytes, recordidentifier, datagram = r.readDatagram()
-		# print(recordidentifier)
+		print(recordidentifier)
 
 		if recordidentifier == HEADER:
 			datagram.read()
@@ -225,9 +222,9 @@ def testreader():
 			datagram.read()
 			# print(datagram)
 
-		# if recordidentifier == 	ATTITUDE:
-			# datagram.read()
-			# r.attitudedata = np.append(r.attitudedata, datagram.attitudearray, axis=0)
+		if recordidentifier == 	ATTITUDE:
+			datagram.read()
+			r.attitudedata = np.append(r.attitudedata, datagram.attitudearray, axis=0)
 
 			# print(datagram)
 
@@ -272,93 +269,30 @@ class SWATH_BATHYMETRY_PING :
 		self.fileptr = fileptr						# remember the file pointer so we do not need to pass from the host process
 		self.fileptr.seek(numbytes, 1)				# move the file pointer to the end of the record so we can skip as the default actions
 	
-		self.scalefactorsd = {}
-		# self.scalefactors = []
-		self.DEPTH_ARRAY = []
-		self.ACROSS_TRACK_ARRAY = []
-		self.ALONG_TRACK_ARRAY = []
-		self.TRAVEL_TIME_ARRAY = []
-		self.BEAM_ANGLE_ARRAY = []
-		self.MEAN_CAL_AMPLITUDE_ARRAY = []
-		self.MEAN_REL_AMPLITUDE_ARRAY = []
-		self.QUALITY_FACTOR_ARRAY = []
-		self.QUALITY_FLAGS_ARRAY = []
-		self.BEAM_FLAGS_ARRAY = []
-		self.BEAM_ANGLE_FORWARD_ARRAY = []
-		self.VERTICAL_ERROR_ARRAY = []
-		self.HORIZONTAL_ERROR_ARRAY = []
-		self.SECTOR_NUMBER_ARRAY = []
-		# self.INTENSITY_SERIES_ARRAY = []
-		self.SNIPPET_SERIES_ARRAY = []
-		self.perbeam = True
-		self.snippettype = SNIPPET_MAX
-		self.numbeams = 0
-		self.time = 0
-		self.pingnanotime = 0
-		self.frequency = 0
+		self.scalefactorsd 				= {}
+		self.DEPTH_ARRAY 				= []
+		self.ACROSS_TRACK_ARRAY 		= []
+		self.ALONG_TRACK_ARRAY 			= []
+		self.TRAVEL_TIME_ARRAY 			= []
+		self.BEAM_ANGLE_ARRAY 			= []
+		self.MEAN_CAL_AMPLITUDE_ARRAY 	= []
+		self.MEAN_REL_AMPLITUDE_ARRAY 	= []
+		self.QUALITY_FACTOR_ARRAY 		= []
+		self.QUALITY_FLAGS_ARRAY 		= []
+		self.BEAM_FLAGS_ARRAY 			= []
+		self.BEAM_ANGLE_FORWARD_ARRAY 	= []
+		self.VERTICAL_ERROR_ARRAY 		= []
+		self.HORIZONTAL_ERROR_ARRAY 	= []
+		self.SECTOR_NUMBER_ARRAY 		= []
+		# self.INTENSITY_SERIES_ARRAY 	= []
+		self.SNIPPET_SERIES_ARRAY 		= []
+		self.perbeam 					= True
+		self.snippettype 				= SNIPPET_MAX
+		self.numbeams 					= 0
+		self.time 						= 0
+		self.pingnanotime 				= 0
+		self.frequency 					= 0
 
-	###############################################################################
-	# def readscalefactors(self, headeronly=False):
-	# 	'''read the scale facttors
-	# 	'''
-	# 	# read ping header
-	# 	hdrfmt = '>llll5hLH3h2Hlllh'
-	# 	hdrlen = struct.calcsize(hdrfmt)
-	# 	rec_unpack = struct.Struct(hdrfmt).unpack
-
-	# 	self.fileptr.seek(self.offset + self.hdrlen, 0)   # move the file pointer to the start of the record so we can read from disc			  
-	# 	# self.fileptr.seek(self.offset + self.hdrlen , 0)   # move the file pointer to the start of the record so we can read from disc			  
-	# 	data = self.fileptr.read(hdrlen)
-	# 	s = rec_unpack(data)
-	# 	self.time 			= s[0] 
-	# 	self.pingnanotime 	= s[1] 
-	# 	self.timestamp		= self.time + (self.pingnanotime/1000000000)
-	# 	self.longitude 		= s[2] / 10000000
-	# 	self.latitude		= s[3] / 10000000
-	# 	self.numbeams 		= s[4]
-	# 	self.centrebeam 	= s[5]
-	# 	self.pingflags 		= s[6]
-	# 	self.reserved 		= s[7]
-	# 	self.tidecorrector	= s[8] / 100
-	# 	self.depthcorrector	= s[9] / 100
-	# 	self.heading		= s[10] / 100
-	# 	self.pitch			= s[11] / 100
-	# 	self.roll			= s[12] / 100
-	# 	self.heave			= s[13] / 100
-	# 	self.course			= s[14] / 100
-	# 	self.speed			= s[15] / 100
-	# 	self.height			= s[16] / 100
-	# 	self.separation		= s[17] / 100
-	# 	self.gpstidecorrector	= s[18] / 100
-	# 	self.spare			= s[19]
-
-	# 	# skip the record for performance reasons.  Very handy in some circumstances
-	# 	if headeronly:
-	# 		self.fileptr.seek(self.offset + self.numbytes, 0) #move forwards to the end of the record as we cannot trust the record length from the 2024
-	# 		return
-
-	# 	while (self.fileptr.tell() <= self.offset + self.numbytes): #dont read past the end of the packet length.  This should never happen!
-	# 		fmt = '>l'
-	# 		fmtlen = struct.calcsize(fmt)
-	# 		rec_unpack = struct.Struct(fmt).unpack
-	# 		data = self.fileptr.read(fmtlen)   # read the record from disc
-	# 		s = rec_unpack(data)
-
-	# 		subrecord_id = (s[0] & 0xFF000000) >> 24
-	# 		subrecord_size = s[0] & 0x00FFFFFF
-	# 		# print("id %d size %d" % (subrecord_id, subrecord_size))
-	# 			# if subrecord_id == 21: 
-	# 			# 	self.fileptr.seek(self.offset + self.numbytes, 0) #move forwards to the end of the record as we cannot trust the record length from the 2024
-	# 			# else:
-	# 			# 	self.fileptr.seek(subrecord_size, 1) #move forwards to the end of teh record
-	# 			# continue
-
-	# 		# now decode the subrecord
-	# 		# curr = self.fileptr.tell()
-	# 		if subrecord_id == 100: 
-	# 			sf = self.readscalefactorrecord()
-	# 		return sf
-			
 	###############################################################################
 	# Subrecord Description Subrecord Identifier
 	# DEPTH_ARRAY				1
@@ -459,28 +393,28 @@ class SWATH_BATHYMETRY_PING :
 		self.fileptr.seek(self.offset + self.hdrlen, 0)   # move the file pointer to the start of the record so we can read from disc			  
 		# self.fileptr.seek(self.offset + self.hdrlen , 0)   # move the file pointer to the start of the record so we can read from disc			  
 		data = self.fileptr.read(hdrlen)
-		s = rec_unpack(data)
-		self.time 			= s[0] 
-		self.pingnanotime 	= s[1] 
-		self.timestamp		= self.time + (self.pingnanotime/1000000000)
-		self.longitude 		= s[2] / 10000000
-		self.latitude		= s[3] / 10000000
-		self.numbeams 		= s[4]
-		self.centrebeam 	= s[5]
-		self.pingflags 		= s[6]
-		self.reserved 		= s[7]
-		self.tidecorrector	= s[8] / 100
-		self.depthcorrector	= s[9] / 100
-		self.heading		= s[10] / 100
-		self.pitch			= s[11] / 100
-		self.roll			= s[12] / 100
-		self.heave			= s[13] / 100
-		self.course			= s[14] / 100
-		self.speed			= s[15] / 100
-		self.height			= s[16] / 100
-		self.separation		= s[17] / 100
+		s 						= rec_unpack(data)
+		self.time 				= s[0] 
+		self.pingnanotime 		= s[1] 
+		self.timestamp			= self.time + (self.pingnanotime/1000000000)
+		self.longitude 			= s[2] / 10000000
+		self.latitude			= s[3] / 10000000
+		self.numbeams 			= s[4]
+		self.centrebeam 		= s[5]
+		self.pingflags 			= s[6]
+		self.reserved 			= s[7]
+		self.tidecorrector		= s[8] / 100
+		self.depthcorrector		= s[9] / 100
+		self.heading			= s[10] / 100
+		self.pitch				= s[11] / 100
+		self.roll				= s[12] / 100
+		self.heave				= s[13] / 100
+		self.course				= s[14] / 100
+		self.speed				= s[15] / 100
+		self.height				= s[16] / 100
+		self.separation			= s[17] / 100
 		self.gpstidecorrector	= s[18] / 100
-		self.spare			= s[19]
+		self.spare				= s[19]
 
 		# SCALE FACTORS ARE NOT ON EVERYPING SO CARRY FORWARDS
 		self.scalefactorsd = previousscalefactors
@@ -500,14 +434,13 @@ class SWATH_BATHYMETRY_PING :
 			subrecord_id = (s[0] & 0xFF000000) >> 24
 			subrecord_size = s[0] & 0x00FFFFFF
 			# print("id %d size %d" % (subrecord_id, subrecord_size))
-				# if subrecord_id == 21: 
-				# 	self.fileptr.seek(self.offset + self.numbytes, 0) #move forwards to the end of the record as we cannot trust the record length from the 2024
-				# else:
-				# 	self.fileptr.seek(subrecord_size, 1) #move forwards to the end of teh record
-				# continue
+			# 	if subrecord_id == 21: 
+			# 		self.fileptr.seek(self.offset + self.numbytes, 0) #move forwards to the end of the record as we cannot trust the record length from the 2024
+			# 	else:
+			# 		self.fileptr.seek(subrecord_size, 1) #move forwards to the end of teh record
+			# 	continue
 
 			# now decode the subrecord
-			# curr = self.fileptr.tell()
 			if subrecord_id == SCALE_FACTORS:
 				self.readscalefactorrecord()
 				continue
@@ -517,7 +450,7 @@ class SWATH_BATHYMETRY_PING :
 			# 			print (s.subrecordID, s.multiplier, s.offset, s.compressionFlag)
 			# 	continue
 			# else:
-				# scale, offset, compressionFlag, datatype = self.getscalefactor(subrecord_id, subrecord_size / int(self.numbeams))
+			# 	scale, offset, compressionFlag, datatype = self.getscalefactor(subrecord_id, subrecord_size / int(self.numbeams))
 
 			if subrecord_id == 0:
 				self.fileptr.seek(subrecord_size, 1) #move forwards to the end of teh record
@@ -1001,7 +934,7 @@ class SWATH_BATHYMETRY_PING :
 		else:
 			z_area_of_insonification = z_area_of_insonification_obl
 
-		###### TIME VARIED GAIN CORRECTION  19 August 2017 p.kennedy@fugr.com ##########################################
+		###### TIME VARIED GAIN CORRECTION  19 August 2017 p.kennedy ##########################################
 		# note that the first equation refers to the along-track beam width
 		# the R2Sonic Operation Manual refers on p21 to the Beamwidth - Along Track -- moreover, for the 2024, the Beamwidth Along Track is twice
 		# the Beamwidth Across Track
@@ -1306,7 +1239,6 @@ class CSOUND_VELOCITY_PROFILE:
 		'''
 		return pprint.pformat(vars(self))
 
-
 ###############################################################################
 class CPROCESSINGPARAMETERS:
 	def __init__(self, fileptr, numbytes, recordidentifier, hdrlen):
@@ -1344,12 +1276,10 @@ class CPROCESSINGPARAMETERS:
 		self.machinetext = self.fileptr.read(self.namesize+2).decode('utf-8').rstrip('\x00')
 		
 		rec_fmt = '>h'
-		# data = self.fileptr.read(rec_len)
 		data = self.fileptr.read(2)	
 		self.operatorsize = struct.Struct('>h').unpack(data)[0]
 		self.operatortext = self.fileptr.read(self.namesize+2).decode('utf-8').rstrip('\x00')
 
-		
 		self.fileptr.seek(self.offset + self.numbytes + self.hdrlen, 0)	# move the file pointer to the end of the record			  
 
 		return
@@ -1415,16 +1345,16 @@ class CSWATH_BATHY_SUMMARY:
 		bytesRead = rec_len
 		s = rec_unpack(data)
 		
-		self.BEGIN_TIME = s[0] #Time of earliest record in file
-		self.BEGIN_TIME_NANO = s[1]
-		self.END_TIME = s[2] # Time of latest record in file
-		self.END_TIME_NANO = s[3] # Time of latest record in file
-		self.MIN_LATITUDE = s[4] / 10000000 # Southernmost extent of data records
-		self.MIN_LONGITUDE = s[5] / 10000000 # Westernmost extent of data records
-		self.MAX_LATITUDE = s[6] / 10000000 #Northernmost extent of data records
-		self.MAX_LONGITUDE = s[7] / 10000000 # Easternmost extent of data records
-		self.MIN_DEPTH = s[8] / 100 # Least depth in data records
-		self.MAX_DEPTH = s[9] / 100 # Greatest depth in data records
+		self.BEGIN_TIME 		= s[0] #Time of earliest record in file
+		self.BEGIN_TIME_NANO 	= s[1]
+		self.END_TIME 			= s[2] # Time of latest record in file
+		self.END_TIME_NANO 		= s[3] # Time of latest record in file
+		self.MIN_LATITUDE 		= s[4] / 10000000 # Southernmost extent of data records
+		self.MIN_LONGITUDE 		= s[5] / 10000000 # Westernmost extent of data records
+		self.MAX_LATITUDE 		= s[6] / 10000000 #Northernmost extent of data records
+		self.MAX_LONGITUDE 		= s[7] / 10000000 # Easternmost extent of data records
+		self.MIN_DEPTH 			= s[8] / 100 # Least depth in data records
+		self.MAX_DEPTH 			= s[9] / 100 # Greatest depth in data records
 
 		return
 
@@ -1446,15 +1376,9 @@ class GSFREADER:
 		self.fileName = filename
 		self.fileSize = os.path.getsize(filename)
 		self.fileptr 		= open(filename, 'rb')
-
-		# f = open(filename, 'r+b')		
-		# self.f = f
-		# self.fileptr = mmap.mmap(f.fileno(), 0)
 		self.hdrfmt = ">LL"
 		self.hdrlen = struct.calcsize(self.hdrfmt)
 		self.scalefactorsd = {}
-		# if loadscalefactors:
-		# self.scalefactors = self.loadscalefactors()
 		self.attitudedata = np.empty((0), int)
 
 	###########################################################################
@@ -1498,23 +1422,6 @@ class GSFREADER:
 		return data
 
 	###########################################################################
-	# def loadscalefactors(self):
-	# 	'''
-	# 	rewind, load the scale factors array and rewind to the original position.  We can then use these scalefactors for every ping
-	# 	'''
-	# 	curr = self.fileptr.tell()
-	# 	self.rewind()
-
-	# 	while self.moreData():
-	# 		numberofbytes, recordidentifier, datagram = self.readDatagram()
-	# 		if recordidentifier == SWATH_BATHYMETRY:
-	# 			sf = datagram.readscalefactors()
-	# 			self.fileptr.seek(curr, 0)
-	# 			return sf
-	# 	self.fileptr.seek(curr, 0)
-	# 	return None
-	
-	###########################################################################
 	def loadattitude(self):
 		'''
 		rewind, load the navigation from the bathy records and rewind.  output format is ts,x,y,z,roll,pitch,heading
@@ -1551,7 +1458,6 @@ class GSFREADER:
 		previoustimestamp = 0
 		curr = self.fileptr.tell()
 		self.rewind()
-
 
 		while self.moreData():
 			numberofbytes, recordidentifier, datagram = self.readDatagram()
