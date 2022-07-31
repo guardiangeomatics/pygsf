@@ -1,0 +1,237 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		
+		{
+			"name": "Python",
+			"type": "python",
+			"request": "launch",
+			"program": "${file}",
+			"console": "integratedTerminal",
+			"args": ["-i", "f:/projects/ggmatch/P22016", "-cpu", "1", "-mg", "1", "-epsg", "32750"]
+		}
+	]
+}
+
+// "args": ["-i", "Y:/Subsea-Cloud/P20015_WP2_3/17_RAW/Temp/01_mbes/OffsetProblem/B46_CARIS_Project_Sample_Lines_Offset/ggmatch", "-skipqc", "-rebuild"]
+
+// bathyqc testing
+// "args": ["-i", "E:/projects/infilltesting/A09"]
+// O:\Collaboration\PK\A14\1_MAIN
+
+
+// deliver laz file ptch ups
+// file with incorrect day is: BLAS_012149000_NOLINE_20200513_ALS7100VB0321.LAZ
+// it reads teh survey date from the config file which is teh 14th not the 13th.  this breaks the link from PB name convention to raw file name convention.
+// need to make a new function to decode the data from the file rather than jus the time.
+
+
+// control.py
+// "args": ["-i", "P:/PRO_Project_11_Site_04_IP/4_DELIVERABLES/F22"]
+// "args": ["-i", "P:/PRO_Project_11_Site_04_IP/4_DELIVERABLES/F22", "-laz", "-rebuild"]
+
+// backscatterlevel
+// "args": ["-i", "O:/Collaboration/PK/BS_XYI/las14/subset", "-cpu", "0", "-rebuild"]
+
+// deliver testing
+// "args": ["-config", "P:/PRO_Project_11_Site_04_IP/4_DELIVERABLES/F23/mission335.txt", "-cpu","0", "-mappingtable", "P:/PRO_Project_11_Site_04_IP/4_DELIVERABLES/F23/mappingtable_pk.csv"]
+// "args": ["-config", "P:/PRO_Project_11_Site_04_IP/4_DELIVERABLES/F23/mission333.txt"]
+
+// coverage
+// "args": ["-i", "E:/P_Drive/PRO_Project_11_Site_04_IP/0_PROCESSING/2_CATHX/20200531_4900_162_P11_S04_ALS_348/runline/Camera/GeoTiff", "-cathx", "-cpu", "1", "-maxrecords", "10"]
+// "args": ["-config", "P:/PRO_Project_11_Site_03_IP/4_DELIVERABLES/F22/mission313.txt", "-mbesall", "-cpu", "1"]
+
+// P:\PRO_Project_11_Site_03_IP\4_DELIVERABLES\F22
+// "args": ["-config", "P:/PRO_Project_11_Site_04_IP/4_DELIVERABLES/F22/mission321.txt", "-tif", "-cpu", "0", "-post", "-maxrecords", "9999999"]
+
+// mosaiccoverage
+// "args": ["-i", "P:/PRO_Project_11_Site_01_IP/4_DELIVERABLES/final/mosaic/sasi/72HourData/AML_327_479", "-cpu", "0", "-maxrecords", "1"]
+
+
+// tilemosaic auto testing
+// "args": ["-i", "P:/PRO_Project_11_Site_01_IP/4_DELIVERABLES/final/mosaic/sasi/48HourData/AML_328_477"]
+// "args": ["-i", "P:/PRO_Project_11_Site_01_IP/4_DELIVERABLES/final/mosaic/sasi/48HourData/AML_328_477", "-cpu", "1", "-sasi", "-rebuild"]
+
+
+// "args": ["-i", "O:/Collaboration/PK/final/mosaic/sasi/72HourData/A09_160_154"]
+
+// bathyqc testing
+// "args": ["-i", "O:/Collaboration/PK/A14/5_grid", "-mbes"]
+
+// missiont2tile testing.
+// E:/FINALS/20200521_6100_181_P11_S04_ALS_339/2_post_dive_48h
+
+// tilemosaic
+// "args": ["-i", "P:/PRO_Project_11_Site_06_IP/4_DELIVERABLES/FINAL/mosaic/sasi/48HourData", "-sasi", "-cpu", "8", "-maxrecords", "999999"]
+// "args": ["-i", "O:/Collaboration/PK/20200513_6100_174_P11_S04_ALS_322/final/mosaic/cathx/instagram", "-cathx", "-maxrecords", "1000", "-cpu", "32"]
+// "args": ["-i", "O:/Collaboration/PK/20200521_7100_089_P11_S04_ALS_338/final/mosaic/cathx/instagram", "-cathx", "-maxrecords", "1000", "-cpu", "32", "-rebuild"]
+
+// "args": ["-i", "O:/Collaboration/PK/final/mosaic/cathx/instagram", "-cathx", "-maxrecords", "1000", "-cpu", "32", "-rebuild"]
+// "args": ["-i", "O:/Collaboration/PK/final/mosaic/cathx/instagram", "-cathx", "-maxrecords", "1000", "-cpu", "32", "-rebuild"]
+
+// O:\Collaboration\PK\final\mosaic\cathx\instagram
+// "args": ["-i", "E:/FINALS/20200521_6100_181_P11_S04_ALS_339/2_post_dive_48h/6-1-2-10_raw_camera_GeoTIFF", "-cathx", "-maxrecords", "1000"]
+// "args": ["-i", "O:/Collaboration/PK/final/mosaic/cathx/instagram/A09_195_134", "-cathx", "-maxrecords", "1000"]
+
+// bathyqc NF tests
+// "args": ["O:/Collaboration/PK/NFSampleForBathyQC"]
+
+
+// E:\FINALS\20200520_6100_180_P11_S04_ALS_337
+// coverage laz problem
+
+// P:\PRO_Project_11_Site_03_IP\4_DELIVERABLES\F22
+// coverage testing
+// P:/PRO_Project_11_Site_03_IP/4_DELIVERABLES/F22
+
+// coverage testing
+// "args": ["-config", "O:/Collaboration/PK/F17/mission224.txt", "-post", "-cpu", "1"]
+// "args": ["-config", "P:/PRO_Project_11_Site_03_IP/4_DELIVERABLES/F22/mission312.txt", "-tif", "-cpu", "0"]
+// "args": ["-i", "E:/FINALS/20200520_6100_180_P11_S04_ALS_337/6-1-2-10_raw_camera_GeoTIFF", "-cpu", "0", "-cathx"]
+
+// tilemosaic mp testbed
+// "args": ["-i", "E:/FINALS/20200519_7100_088_P11_S04_ALS_335/final/mosaic/cathx/instagram/ALS_021_045", "-cathx", "-cpu", "0", "-rebuild"]
+// "args": ["-i", "E:/FINALS/20200518_7100_087_P11_S04_ALS_333/final/mosaic/cathx/instagram/MOSAIC_1/ALS_028_059", "-cathx", "-cpu", "0"]
+
+// mission2tile MP teting
+// O:\Collaboration\PK\6-1-2-10_raw_camera_GeoTIFF
+
+// E:\FINALS\20200517_7100_086_P11_S04_ALS_331\final\mosaic\cathx\instagram\ALS_021_064\mosaic
+
+// mission2tile testing
+// E:\FINALS\20200517_7100_086_P11_S04_ALS_331
+
+
+
+// bathyqc testing with ssb
+// "args": ["-i", "O:/Collaboration/PK/SSBGapsTesting"]
+
+// "args": ["-i", "O:/Collaboration/PK/F22/PipelineInspections/20200513_6100_174_P11_S04_ALS_322/runline/Camera/c058_0/ColorCamera/ColorCamera_Stills/ColorCamera_0000", "-s", "-14.5"]
+
+// coverage MP testing
+// "args": ["-config", "O:/Collaboration/PK/F17/mission224.txt", "-xtf", "-post", "-cpu", "1"]
+// "args": ["-config", "O:/Collaboration/PK/F17/mission224.txt", "-xtf", "-post"]
+
+
+// tilemosaic cathx mosaic testing
+
+// "args": ["-i", "O:/Collaboration/PK/final/mosaic/sasi/72hourdata", "-sasi", "-auto", "-cpu", "0"]
+
+// mission2tile test for MP mode.
+// "args": ["-config", "P:/PRO_Project_11_Site_04_IP/4_DELIVERABLES/F17/mission224.txt", "-sas", "-post"]
+
+
+// coveragemosaic test
+// "args": ["-i", "O:/Collaboration/PK/final/mosaic/sasi/72hourdata/A09_160_154"]
+
+
+
+// tilemosaic design with many images in MP mode
+// "args": ["-i", "O:/Collaboration/PK/final/mosaic/sasi/72hourdata", "-sasi", "-auto", "-cpu", "0"]
+
+// cathx many tiles mass processing memory testing
+// "args": ["-i", "P:/PRO_Project_11_Site_04_IP/4_DELIVERABLES/F22/PipelineInspections/20200513_7100_079_P11_S04_ALS_321/2_post_dive_48h/final/mosaic/cathx/instagram/ALS_028_056", "-cathx", "-cpu", "0"]
+
+// mission2tile testing with cathx
+// "args": ["-i", "E:/temp/6-1-2-10_raw_camera_GeoTIFF", "-cathx", "-cpu", "1"]
+
+// corrupt tilemosaic raster - bad clipped file
+// "args": ["-i", "D:\dev\final\mosaic\cathx\instagram\ALS_024_058D:/dev/mosaicproblems/GPN_085_173", "-sasi", "-cpu", "1", "-r"]
+
+// #mission2tile free folder option
+// "args": ["-i", "D:/dev/cathxfolderofimages", "-cathx", "-cpu", "0"]
+
+// mission2tile
+// "args": ["-config", "D:/F1/mission03.txt", "-cathx", "-cpu", "0"]
+
+// tilemosaic MP processing test
+// "args": ["-i", "D:/tilemosaictestdata/Projects/ALS/final/ALS_023_069", "-sasi", "-cpu", "0", "-r", "-equal"]
+
+// // photoproc.py..
+// "args": ["-i", "d:/photos", "-gs", "-cpu", "1", "-step", "0.05"]
+
+// //bathyqc infill testing
+// //infinitypos
+// "args": ["-i", "C:/projects/_P18046.2Petrobras/A14"]
+
+// //infinitypos export only testing.
+// "args": ["-i", "C:/projects/_P18046.2Petrobras/AML/bayesmapV2SSSB/BM_20200322172347", "-export"]
+
+// "args": ["-i", "X:/MASTER/F12"]
+// //"args": ["-i", "C:/projects/_P18046.2Petrobras/A06/final/mosiac/sasi/A06_094_041", "-sasi", "-autoreverse"]
+
+// // "args": ["-i", "C:/projects/NF/ToPK", "-epsg", "32621"]
+
+
+// // C:\Windows\System32\cmd.exe
+
+// // #coverageattributes
+// // "args": ["-i", "X:/MASTER/01_LEVANTAMENTO_WorkInProgress/02_AREAS/ES/ABD/01_SONAR/03_POS_PROCESSADOS/02_MOSAICO/02_COBERTURA/01_VALIDACAO/test"]
+
+// // #backscatter mosaic creation example
+// // "args": ["-i", "X:/MASTER/02_PROCESSING_WorkFolders/ABD/6-1-4-9_BKS_mosaic/1_main", "-back"]
+
+// // #coverage gaps testing
+// // "args": ["-i", "C:/projects/_P18046.2Petrobras/ABD/SSSB", "-poly", "C:/infinitytool/GGTools/delivery/_AREAS_GRID_AUV_ES/brigadeiro.shp"]
+
+// // #validate testing...
+// // "args": ["-i", "Y:/PRO_Project_11_Site_01_IP/4_DELIVERABLES/F3/toclient/01_LEVANTAMENTO/08_CONTROLE/01_PLANILHA/ES/AML/CONTROLE_AML_IP20190807_13.xlsx", "-openresult"]
+
+// // #coverage testing...
+// // "args": ["-config", "Y:/PRO_Project_11_Site_01_IP/4_DELIVERABLES/F1/mission004.txt", "-post", "-maxrecords", "3"]
+
+// // #72 hour port call control testing...
+// // "args": ["-i", "Y:/PRO_Project_11_Site_04_IP/4_DELIVERABLES/F14", "-maxrecords", "2"]
+// // "args": ["-i", "Y:/PRO_Project_11_Site_01_IP/4_DELIVERABLES/F5", "-maxrecords", "5", "-openresult", "-sgy", "-rebuild"]
+
+
+
+
+// // "args": ["-i", "Y:/PRO_Project_11_Site_01_IP/4_DELIVERABLES/F1", "-maxrecords", "1"
+
+// // #coverage testing...
+// // "args": ["-config", "Y:/PRO_Project_11_Site_01_IP/4_DELIVERABLES/F5/mission038.txt", "-rebuild", "-laz", "-maxrecords", "2", "-openresult", "-post"]
+
+// // "args": ["-i", "Z:/Subsea-Cloud/OceanInfinity/IslandPride/F11/toclient/01_LEVANTAMENTO", "-mbes"]
+
+// // "args": ["-i", "Z:/Subsea-Cloud/OceanInfinity/IslandPride/F12/WideArea/20191207_6100_126_P11_S10_A14_144/2_post_dive_48h/6-1-2-11_survey_control_spreadsheet/CONTROLE_A14_IP20191211.xlsx", "-mbes"]
+
+// // "args": ["-config", "Z:/Subsea-Cloud/OceanInfinity/IslandPride/F12/mission138.txt"]
+// // "args": ["-config", "Z:/Subsea-Cloud/OceanInfinity/IslandPride/F12/mission138.txt"]
+// // #48H test case
+// // "args": ["-c", "Z:/Subsea-Cloud/OceanInfinity/IslandPride/F12/WideArea/20191124_6100_118_P11_S03_A09_135/2_post_dive_48h/6-1-2-11_survey_control_spreadsheet/CONTROLE_A09_IP20191211.XLSX"]
+
+// // #01_LEVANTAMENTO test case
+// // "args": ["-c", "Z:/Subsea-Cloud\OceanInfinity/IslandPride/01_LEVANTAMENTO_FINALS_TEAM/08_CONTROLE/01_PLANILHA/BC/A09/CONTROLE_A09_IP20191113.XLSX"]
+
+
+
+// // "args": ["-config", "Z:/Subsea-Cloud/OceanInfinity/IslandPride/F5/mission038.txt"]
+
+// // "args": ["-config", "C:\\projects\\P18046.2Petrobras\\F1\\mission003.txt", "-post"]
+// // "args": ["-config", "X:/MASTER/F5/mission038.txt", "-laser"]
+// // "args": ["-i", "X:/MASTER/01_LEVANTAMENTO/02_AREAS/ES/AML/01_SONAR/03_POS_PROCESSADOS"]
+
+// // "args": ["-i", "W:/Subsea-Cloud/OceanInfinity/IslandPride/final/20190709_4900_142_P11_ACT_003_LAZ/output_laser_final/CathxL/runline/Laser_Laz_NegativeDepth/tif/complete"]
+// // "args": ["-config", "W:/Subsea-Cloud/OceanInfinity/IslandPride/F1/mission03.txt"]
+
+
+
+// // "args": ["-i", "W:/Subsea-Cloud/OceanInfinity/IslandPride/final/final/mosaic/sasi/A09_194_133", "-step", "0.5"]
+// // "args": ["-config", "e:/F3/mission014.txt"]
+// // "args": ["-i", "W:/Subsea-Cloud/OceanInfinity/IslandPride/final/final/01_LEVANTAMENTO/02_AREAS/BC/A09"]
+// // "args": ["-i", "."]
+// // "args": ["-i", "."]
+// // "args": ["-config", "e:/F1/Mission04.txt"]
+// // "args": ["-i", "E:/F2/toclient/rawmissions/RPV_20190717_6100_009_P11_S01_AML_005"]
+// // "args": ["-config", "S:/OCEANINFINITY/MASTER/FortnightDeliverables_20190808_20190821/Mission021.txt"]
+// // "args": ["-config", "S:/OCEANINFINITY/MASTER/FortnightDeliverables_20190725_20190807/Mission015.txt"]
+
+// // "args": ["-i", "d:/FortnightDeliverables_20190708_20190714"]
+
+// // "args": ["-config", "E:/FortnightDeliverables_20190708_20190714/Mission04.txt", "-subset","10"]
+// // "args": ["-i", "c:/temp/20190926_HISAS_RubTest"]
+// // "args": ["-config", "E:/FortnightDeliverables_20190715_20190724/Mission08.txt", "-subset","10000"]
+
+
+
