@@ -1,7 +1,7 @@
 #name:			pygsf
-#created:		July 2017
+#created:		July 2022
 #by:			p.kennedy@guardiangeomatics.com
-#description:	python module to read and write a Generic Sensor Formaty (GSF) file natively
+#description:	python module to read a Generic Sensor Formaty (GSF) file natively
 #notes:			See main at end of script for example how to use this
 #based on GSF Version 3.05
 
