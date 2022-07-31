@@ -20,10 +20,13 @@ By being space efficient, the files are MUCH smaller than the same data in vendo
 * Compressible
 The design used integer arrays to store geophysical data.  This would appear to be a little dated given terabytes of storage are now cheap, but please consider this example.
 
+
 | File | Bytes | Percetage Reduction |
+| ------------------- | ------------------------ | ---------------------- |
 | IDN-JI-SR23_1-PH-B46-001_0005_20220419_171703.KMALL | | |
 | Same data in GSF file| 207574Kb | |
 | Same data in GSF.7Z | | |
+
 
 Overall, GSF is fantastic.  where it has struggled is the file format is SO dense, it is not easy to read.  There is a fantastic C library (gsflib) which is great if you are a seasoned programmer.  If you are a student, researcher or keen data processor who wish to access the GSF files, then they were pretty impregnable.
 The folks at Guardian Geomatics recognise that remote processing, cloud processing and massive parallel processing are now on our doorsteps and we need to leverage this technologies.  To assist the industry in this regards, we have decided to release pygsf.
