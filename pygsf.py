@@ -31,6 +31,7 @@ import random
 from datetime import datetime
 from datetime import timedelta
 from statistics import mean
+from matplotlib.colors import Normalize
 # from delivershared import log as log, makedirs
 import numpy as np
 
@@ -54,13 +55,16 @@ def main():
 	# filename = "C:/sampledata/gsf/0095_20220701_033832.gsf"
 	# filename = "F:/projects/ggmatch/lazgsfcomparisontest/IDN-JI-SR23_1-PH-B46-001_0000_20220419_162536.gsf"
 	filename = "C:/sampledata/gsf/IDN-JI-SR23_1-PH-B46-001_0005_20220419_171703.gsf"
+	filename = "C:/sampledata/gsf/IDN-ME-SR23_1-PH-B46-104_0580_20220605_171439.gsf"
 
-	readfile(filename)
+	demobackscatter(filename)
+
+	demo1(filename)
 	summary(filename)
 	testreader(filename)
 
 ###############################################################################
-def readfile(filename):
+def demo1(filename):
 	'''sample read script to demonstrate how to iterate through a GSF file
 	'''
 	reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
@@ -72,6 +76,52 @@ def readfile(filename):
 			reader.scalefactorsd = datagram.read()
 			depths = datagram.DEPTH_ARRAY
 			print (depths)
+
+	return
+
+###############################################################################
+def demobackscatter(filename):
+	'''sample read script to demonstrate how to iterate through a GSF file and load backscatter to a numpy array
+	'''
+	import matplotlib.pyplot as plt
+	from scipy import misc
+	import scipy
+	from scipy import ndimage
+
+
+	backscatterarray = None
+
+	reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
+	while reader.moreData():
+		numberofbytes, recordidentifier, datagram = reader.readdatagram()
+		# print(reader.recordnames[recordidentifier])
+
+		if recordidentifier == SWATH_BATHYMETRY:
+			reader.scalefactorsd = datagram.read()
+			bs = datagram.MEAN_REL_AMPLITUDE_ARRAY
+			if backscatterarray is None:
+				backscatterarray = bs
+			else:
+				backscatterarray = np.vstack((backscatterarray,bs))
+
+
+	im_denoised = scipy.ndimage.gaussian_filter(backscatterarray, 2)
+	im_median = ndimage.median_filter(backscatterarray, 3)
+
+	# Plot the grid
+	fig = plt.figure(figsize=(8, 8), dpi=300)
+	columns = 3
+	rows = 1
+	fig.add_subplot(1, 1, 1)
+	plt.imshow(backscatterarray, cmap='gray', vmin=0, vmax=255)
+
+	fig.add_subplot(1, 2, 2)
+	plt.imshow(im_denoised, cmap='gray', vmin=0, vmax=255)
+
+	fig.add_subplot(1, 3, 3)
+	plt.imshow(im_median, cmap='gray', vmin=0, vmax=255)
+
+	plt.show()
 
 	return
 
