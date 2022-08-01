@@ -232,95 +232,6 @@ class SWATH_BATHYMETRY_PING :
 		self.frequency 					= 0
 
 	###############################################################################
-	# Subrecord Description Subrecord Identifier
-	# DEPTH_ARRAY				1
-	# ACROSS_TRACK_ARRAY    	2
-	# ALONG_TRACK_ARRAY    		3
-	# TRAVEL_TIME_ARRAY    		4
-	# BEAM_ANGLE_ARRAY    		5
-	# MEAN_CAL_AMPLITUDE_ARRAY  6
-	# MEAN_REL_AMPLITUDE_ARRAY  7
-	# ECHO_WIDTH_ARRAY    		8
-	# QUALITY_FACTOR_ARRAY    	9
-	# RECEIVE_HEAVE_ARRAY    	10
-	# DEPTH_ERROR_ARRAY (obsolete)    		11
-	# ACROSS_TRACK_ERROR_ARRAY (obsolete)   12
-	# ALONG_TRACK_ERROR_ARRAY (obsolete)    13
-	# NOMINAL_DEPTH_ARRAY    				14
-	# QUALITY_FLAGS_ARRAY    				15
-	# BEAM_FLAGS_ARRAY    					16
-	# SIGNAL_TO_NOISE_ARRAY    				17
-	# BEAM_ANGLE_FORWARD_ARRAY    			18
-	# VERTICAL_ERROR_ARRAY    				19
-	# HORIZONTAL_ERROR_ARRAY    			20
-	# INTENSITY_SERIES_ARRAY    			21
-	# SECTOR_NUMBER_ARRAY    				22
-	# DETECTION_INFO_ARRAY    				23
-	# INCIDENT_BEAM_ADJ_ARRAY    			24
-	# SYSTEM_CLEANING_ARRAY    				25
-	# DOPPLER_CORRECTION_ARRAY    			26
-	# SONAR_VERT_UNCERTAINTY_ARRAY    		27
-	# SCALE_FACTORS     					100
-	# SEABEAM_SPECIFIC    					102
-	# EM12_SPECIFIC     					103
-	# EM100_SPECIFIC    					104
-	# EM950_SPECIFIC    					105
-	# EM121A_SPECIFIC    					106
-	# EM121_SPECIFIC    					107
-	# SASS_SPECIFIC (To Be Replaced By CMP_SASS)    108
-	# SEAMAP_SPECIFIC                       109
-	# SEABAT_SPECIFIC    					110
-	# EM1000_SPECIFIC    					111
-	# TYPEIII_SEABEAM_SPECIFIC (To Be Replaced By CMP_SASS )    112
-	# SB_AMP_SPECIFIC       				113
-	# SEABAT_II_SPECIFIC    				114
-	# SEABAT_8101_SPECIFIC (obsolete)     	115
-	# SEABEAM_2112_SPECIFIC    				116
-	# ELAC_MKII_SPECIFIC    				117
-	# EM3000_SPECIFIC    					118
-	# EM1002_SPECIFIC 						119
-	# EM300_SPECIFIC    					120
-	# CMP_SASS_SPECIFIC (To replace SASS and TYPEIII_SEABEAM)    121
-	# RESON_8101_SPECIFIC           		122   
-	# RESON_8111_SPECIFIC           		123   
-	# RESON_8124_SPECIFIC           		124   
-	# RESON_8125_SPECIFIC           		125   
-	# RESON_8150_SPECIFIC           		126   
-	# RESON_8160_SPECIFIC           		127   
-	# EM120_SPECIFIC                		128
-	# EM3002_SPECIFIC               		129
-	# EM3000D_SPECIFIC                		130
-	# EM3002D_SPECIFIC                		131
-	# EM121A_SIS_SPECIFIC     				132
-	# EM710_SPECIFIC                 		133
-	# EM302_SPECIFIC                 		134
-	# EM122_SPECIFIC                 		135
-	# GEOSWATH_PLUS_SPECIFIC         		136  
-	# KLEIN_5410_BSS_SPECIFIC         		137
-	# RESON_7125_SPECIFIC     				138
-	# EM2000_SPECIFIC    					139
-	# EM300_RAW_SPECIFIC             		140
-	# EM1002_RAW_SPECIFIC            		141
-	# EM2000_RAW_SPECIFIC           		142
-	# EM3000_RAW_SPECIFIC 					143
-	# EM120_RAW_SPECIFIC             		144
-	# EM3002_RAW_SPECIFIC            		145
-	# EM3000D_RAW_SPECIFIC        			146
-	# EM3002D_RAW_SPECIFIC          		147
-	# EM121A_SIS_RAW_SPECIFIC       		148
-	# EM2040_SPECIFIC     					149
-	# DELTA_T_SPECIFIC     					150
-	# R2SONIC_2022_SPECIFIC      			151
-	# R2SONIC_2024_SPECIFIC     			152             
-	# R2SONIC_2020_SPECIFIC     			153             
-	# SB_ECHOTRAC_SPECIFIC (obsolete)       206
-	# SB_BATHY2000_SPECIFIC (obsolete)      207
-	# SB_MGD77_SPECIFIC (obsolete)          208
-	# SB_BDB_SPECIFIC (obsolete)            209
-	# SB_NOSHDB_SPECIFIC   (obsolete)       210
-	# SB_PDD_SPECIFIC   (obsolete)          211
-	# SB_NAVISOUND_SPECIFIC   (obsolete)    212
-	###############################################################################
 	def read(self, headeronly=False):
 
 		# read ping header
@@ -459,45 +370,9 @@ class SWATH_BATHYMETRY_PING :
 		'''
 		return pprint.pformat(vars(self))
 	###############################################################################
-	def clippolar(self, leftclipdegrees, rightclipdegrees):
-		'''sets the processing flags to rejected if the beam angle is beyond the clip parameters'''
-		if self.numbeams == 0:
-			return
-		if len(self.QUALITY_FACTOR_ARRAY) != len(self.TRAVEL_TIME_ARRAY):
-			return
-		for i, s in enumerate(self.BEAM_ANGLE_ARRAY):
-			if (s <= leftclipdegrees) or (s >= rightclipdegrees):
-				self.QUALITY_FACTOR_ARRAY[i] += REJECT_CLIP
-				# self.MEAN_REL_AMPLITUDE_ARRAY[i] = 0
-				# self.ACROSS_TRACK_ARRAY[i] = 0
-		return
-	###############################################################################
-	def cliptwtt(self, minimumtraveltime=0.0):
-		'''sets the processing flags to rejected if the two way travel time is less than the clip parameters'''
-		if self.numbeams == 0:
-			return
-		if len(self.QUALITY_FACTOR_ARRAY) != len(self.TRAVEL_TIME_ARRAY):
-			return
-		for i, s in enumerate(self.TRAVEL_TIME_ARRAY):
-			if (s <= minimumtraveltime):
-				self.QUALITY_FACTOR_ARRAY[i] += REJECT_RANGE
-		return
-
-	###############################################################################
-	def clipintensity(self, minimumintenisty=0.0):
-		'''sets the processing flags to rejected if the two way travel time is less than the clip parameters'''
-		if self.numbeams == 0:
-			return
-		if len(self.QUALITY_FACTOR_ARRAY) != len(self.TRAVEL_TIME_ARRAY):
-			return
-		for i, s in enumerate(self.MEAN_REL_AMPLITUDE_ARRAY):
-			if (s <= minimumintenisty):
-				self.QUALITY_FACTOR_ARRAY[i] += REJECT_INTENSITY
-		return
-
-	###############################################################################
 	def getdatatype(self, ID, bytes_per_value):
-
+		'''the scale factors array determines the type of data and from this we need to determine the struct code for numpy / struct to use for reading from disc
+		'''
 		datatype = -999
 		if ID == DEPTH_ARRAY:			
 			if bytes_per_value == 2:
@@ -574,31 +449,6 @@ class SWATH_BATHYMETRY_PING :
 			return -999
 		return datatype
 
-	###############################################################################
-	# def getscalefactor(self, ID, bytes_per_value):
-	# 	for s in self.scalefactors:
-	# 		if s.subrecordID == ID:			# DEPTH_ARRAY array
-	# 			if bytes_per_value == 1:
-	# 				datatype = 'B' 			#unsigned values
-	# 			elif bytes_per_value == 2:
-	# 				datatype = 'H'			#unsigned values
-	# 				if ID == 2:				#ACROSS_TRACK_ARRAY array
-	# 					datatype = 'h'		#unsigned values
-	# 				if ID == 3:				#ACROSS_TRACK_ARRAY array
-	# 					datatype = 'h'		#unsigned values
-	# 				if ID == 5:				#beam angle array
-	# 					datatype = 'h'		#unsigned values
-	# 			elif bytes_per_value == 4:
-	# 				datatype = 'L'			#unsigned values
-	# 				if ID == 2:				#ACROSS_TRACK_ARRAY array
-	# 					datatype = 'l'		#unsigned values
-	# 				if ID == 5:				#beam angle array
-	# 					datatype = 'l'		#unsigned values
-	# 			else:
-	# 				datatype = 'L'			#unsigned values not sure about this one.  needs test data
-	# 			return s.multiplier, s.offset, s.compressionFlag, datatype
-		
-	# 	return 1,0,0, 'h'
 	###############################################################################
 	def readscalefactorrecord(self):
 		# /* First four byte integer contains the number of scale factors */
@@ -739,97 +589,6 @@ class SWATH_BATHYMETRY_PING :
 				
 				samplearray[i] = adjusted
 		return samplearray
-
-	###############################################################################
-	def backscatteradjustment(self, S1_angle, S1_twtt, S1_range, S1_Magnitude, H0_TxPower, H0_SoundSpeed, H0_RxAbsorption, H0_TxBeamWidthVert, H0_TxBeamWidthHoriz, H0_TxPulseWidth, H0_RxSpreading, H0_RxGain, H0_VTX_Offset):
-		'''R2Sonic backscatter correction algorithm from Norm Camblell at CSIRO.  This is a port from F77 fortran code, and has been tested and confirmed to provide identical results'''
-		# the following code uses the names for the various packets as listed in the R2Sonic SONIC 2024 Operation Manual v6.0
-		# so names beginning with
-		# H0_   denote parameters from the BATHY (BTH) and Snippet (SNI) packets from section H0
-		# R0_   denote parameters from the BATHY (BTH) packets from section R0
-		# S1_   denote parameters from the Snippet (SNI) packets from section S1
-		# names beginning with
-		# z_	denote values derived from the packet parameters
-		# the range, z_range_m, can be found from the two-way travel time (and scaling factor), and the sound speed, as follows:
-
-		one_rad = 57.29577951308232
-		S1_angle_rad = S1_angle / one_rad
-		z_one_way_travel_secs = S1_twtt / 2.0
-		z_range_m = z_one_way_travel_secs * H0_SoundSpeed
-
-		# there is a range of zero, so this is an invalid beam, so quit
-		if z_range_m == 0:
-			return 0
-
-		###### TRANSMISSION LOSS CORRECTION ##########################################
-		# according to Lurton, Augustin and Le Bouffant (Femme 2011), the basic Sonar equation is
-		# received_level = source_level - 2 * transmission_loss + target_strength + receiver_gain
-		# note that this last term does not always appear explicitly in the sonar equation
-		# more specifically:
-		# transmission_loss = H0_RxAbsorption * range_m + 40 log10 ( range_m )
-		# target_strength = backscatter_dB_m + 10 log10 ( z_area_of_insonification )
-		# receiver_gain = TVG + H0_RxGain
-		# the components of the Sonar equation can be calculated as follows:
-		# u16 S1_Magnitude[S1_Samples]; // [micropascals] = S1_Magnitude[n]
-
-		z_received_level = 20.0 * math.log10 ( S1_Magnitude )
-		z_source_level = H0_TxPower # [dB re 1 uPa at 1 meter]
-		z_transmission_loss_t1 = 2.0 * H0_RxAbsorption * z_range_m / 1000.0  # [dB per kilometer]
-		z_transmission_loss_t2 = 40.0 * math.log10(z_range_m)
-		z_transmission_loss = z_transmission_loss_t1 + z_transmission_loss_t2
-	
-		###### INSONIFICATION AREA CORRECTION Checked 19 August 2017 p.kennedy@fugr.com ##########################################	
-		# for oblique angles
-			# area_of_insonification = along_track_beam_width * range * sound_speed * pulse_width / 2 sin ( incidence_angle)
-		# for normal incidence
-			# area_of_insonification = along_track_beam_width * across_track_beam_width * range ** 2
-
-		sin_S1_angle = math.sin ( abs ( S1_angle_rad ) )
-
-		# from Hammerstad 00 EM Technical Note Backscattering and Seabed Image Reflectivity.pdf
-		# A = ψTψr*R^2 around normal incidence
-		z_area_of_insonification_nml = H0_TxBeamWidthVert * H0_TxBeamWidthHoriz * z_range_m **2 
-
-		# A = ½cτ ψTR/sinφ elsewhere
-		if ( abs ( S1_angle ) >= 0.001 ):
-			z_area_of_insonification_obl = 0.5 * H0_SoundSpeed * H0_TxPulseWidth * H0_TxBeamWidthVert * z_range_m / sin_S1_angle
-
-		if ( abs ( S1_angle ) < 25. ):
-			z_area_of_insonification = z_area_of_insonification_nml
-		else:
-			z_area_of_insonification = z_area_of_insonification_obl
-
-		if ( abs ( S1_angle ) < 0.001 ):
-			z_area_of_insonification = z_area_of_insonification_nml
-		elif ( z_area_of_insonification_nml < z_area_of_insonification_obl ):
-			z_area_of_insonification = z_area_of_insonification_nml
-		else:
-			z_area_of_insonification = z_area_of_insonification_obl
-
-		###### TIME VARIED GAIN CORRECTION  19 August 2017 p.kennedy ##########################################
-		# note that the first equation refers to the along-track beam width
-		# the R2Sonic Operation Manual refers on p21 to the Beamwidth - Along Track -- moreover, for the 2024, the Beamwidth Along Track is twice
-		# the Beamwidth Across Track
-
-		# according to the R2Sonic Operation Manual in Section 5.6.3 on p88, the TVG equation is:
-		# TVG = 2*R* α/1000 + Sp*log(R) + G
-		# where:
-		# α = Absorption Loss db/km			(H0_RxAbsorption)
-		# R = Range in metres				(range_m)
-		# Sp = Spreading loss coefficient	(H0_RxSpreading)
-		# G = Gain from Sonar Control setting (H0_RxGain)
-
-		TVG_1 = 2.0 * z_range_m * H0_RxAbsorption / 1000.
-		TVG_2 = H0_RxSpreading * math.log10 ( z_range_m )		
-		TVG = TVG_1 + TVG_2 + H0_RxGain
-
-		# as per email from Beaudoin, clip the TVG between 4 and 83 dB
-		TVG = min(max(4, TVG ), 83)
-
-		###### NOW COMPUTE THE CORRECTED BACKSCATTER ##########################################
-		backscatter_dB_m = z_received_level - z_source_level + z_transmission_loss - (10.0 * math.log10 ( z_area_of_insonification )) - TVG - H0_VTX_Offset + 100.0
-
-		return backscatter_dB_m
 
 	###############################################################################
 	def decodeR2SonicImagerySpecific(self):
@@ -1529,72 +1288,21 @@ class GSFREADER:
 			return (0, 0, False, 0)
 
 		# version header format
-		data = self.fileptr.read(self.hdrlen)
-		s = struct.unpack(self.hdrfmt, data)
-		sizeofdata = s[0]
-		recordidentifier = s[1]
-		# haschecksum = recordidentifier & 0x80000000
-
-		haschecksum = isBitSet(recordidentifier, 31)
-		# temp = recordidentifier & 0x7FC00000
-		# reserved = (temp >> 22)
-
-		# recordidentifier = (recordidentifier & 0x003FFFFF)
-
-		# bit=int(1)
-		# num=recordidentifier>>(bit-1)
-		# if((num&1)!=0):
-		# 	print("{} is set".format(bit))
-		# 	haschecksum = true
-		# else:
-		# 	print("{} is reset".format(bit))
-		# 	haschecksum = false
-
-		# if haschecksum == true:
-		# 	# read the checksum of 4 bytes if required
-		# 	chksum = self.fileptr.read(4)
-		# 	return (sizeofdata + self.hdrlen + 4, recordidentifier, haschecksum, self.hdrlen + 4)
+		data 				= self.fileptr.read(self.hdrlen)
+		s 					= struct.unpack(self.hdrfmt, data)
+		sizeofdata 			= s[0]
+		recordidentifier 	= s[1]
+		haschecksum 		= isBitSet(recordidentifier, 31)
 		
 		# now reset file pointer to the start of the record
 		self.fileptr.seek(curr, 0)
 		return (sizeofdata + self.hdrlen, recordidentifier, haschecksum, self.hdrlen )
-		
-		# if haschecksum == true:
-		# 	return (sizeofdata + 4, recordidentifier, haschecksum, self.hdrlen + 4)
-		# 	# return (sizeofdata + self.hdrlen + 4, recordidentifier, haschecksum, self.hdrlen + 4)
-		# else:
-		# 	return (sizeofdata, recordidentifier, haschecksum, self.hdrlen )
-		# 	# return (sizeofdata + self.hdrlen, recordidentifier, haschecksum, self.hdrlen )
-
 
 ###########################################################################
 def isBitSet(int_type, offset):
 	'''testBit() returns a nonzero result, 2**offset, if the bit at 'offset' is one.'''
 	mask = 1 << offset
 	return (int_type & (1 << offset)) != 0
-
-###############################################################################
-def createOutputFileName(path):
-	'''Create a valid output filename. if the name of the file already exists the file name is auto-incremented.'''
-	path = os.path.expanduser(path)
-
-	if not os.path.exists(os.path.dirname(path)):
-		os.makedirs(os.path.dirname(path))
-
-	if not os.path.exists(path):
-		return path
-
-	root, ext = os.path.splitext(os.path.expanduser(path))
-	dir = os.path.dirname(root)
-	fname = os.path.basename(root)
-	candidate = fname+ext
-	index = 1
-	ls = set(os.listdir(dir))
-	while candidate in ls:
-			candidate = "{}_{}{}".format(fname,index,ext)
-			index += 1
-
-	return os.path.join(dir, candidate)
 
 ###############################################################################
 class cBeam:
@@ -1609,7 +1317,6 @@ class cBeam:
 		self.sampleMin			  = 999		 
 		self.sampleMax			  = -999		 
 		self.samples				= []
-
 
 ###################################################################################
 ######HEADERS######################################################################
@@ -1650,240 +1357,94 @@ REJECT_INTENSITY= -4
 
 
 # Subrecord Description Subrecord Identifier
-DEPTH_ARRAY							=	1
-ACROSS_TRACK_ARRAY    				=	2
-ALONG_TRACK_ARRAY    				=	3
-TRAVEL_TIME_ARRAY    				=	4
-BEAM_ANGLE_ARRAY    				=	5
-MEAN_CAL_AMPLITUDE_ARRAY  			=	6
-MEAN_REL_AMPLITUDE_ARRAY  			=	7
-ECHO_WIDTH_ARRAY    				=	8
-QUALITY_FACTOR_ARRAY    			=	9
-RECEIVE_HEAVE_ARRAY    				=	10
-DEPTH_ERROR_ARRAY			    	=	11
-ACROSS_TRACK_ERROR_ARRAY 			=  	12
-ALONG_TRACK_ERROR_ARRAY				=	13
-NOMINAL_DEPTH_ARRAY    				=	14
-QUALITY_FLAGS_ARRAY    				=	15
-BEAM_FLAGS_ARRAY    				=	16
-SIGNAL_TO_NOISE_ARRAY    			=	17
-BEAM_ANGLE_FORWARD_ARRAY    		=	18
-VERTICAL_ERROR_ARRAY    			=	19
-HORIZONTAL_ERROR_ARRAY    			=	20
-INTENSITY_SERIES_ARRAY    			=	21
-SECTOR_NUMBER_ARRAY    				=	22
-DETECTION_INFO_ARRAY    			=	23
-INCIDENT_BEAM_ADJ_ARRAY    			=	24
-SYSTEM_CLEANING_ARRAY    			=	25
-DOPPLER_CORRECTION_ARRAY    		=	26
-SONAR_VERT_UNCERTAINTY_ARRAY    	=	27
-SCALE_FACTORS     					=	100
-# SEABEAM_SPECIFIC    				=	102
-# EM12_SPECIFIC     					=	103
-# EM100_SPECIFIC    					=	104
-# EM950_SPECIFIC    					105
-# EM121A_SPECIFIC    					106
-# EM121_SPECIFIC    					107
-# SASS_SPECIFIC (To Be Replaced By CMP_SASS)    108
-# SEAMAP_SPECIFIC                       109
-# SEABAT_SPECIFIC    					110
-# EM1000_SPECIFIC    					111
-# TYPEIII_SEABEAM_SPECIFIC (To Be Replaced By CMP_SASS )    112
-# SB_AMP_SPECIFIC       				113
-# SEABAT_II_SPECIFIC    				114
-# SEABAT_8101_SPECIFIC (obsolete)     	115
-# SEABEAM_2112_SPECIFIC    				116
-# ELAC_MKII_SPECIFIC    				117
-# EM3000_SPECIFIC    					118
-# EM1002_SPECIFIC 						119
-# EM300_SPECIFIC    					120
-# CMP_SASS_SPECIFIC (To replace SASS and TYPEIII_SEABEAM)    121
-# RESON_8101_SPECIFIC           		122   
-# RESON_8111_SPECIFIC           		123   
-# RESON_8124_SPECIFIC           		124   
-# RESON_8125_SPECIFIC           		125   
-# RESON_8150_SPECIFIC           		126   
-# RESON_8160_SPECIFIC           		127   
-# EM120_SPECIFIC                		128
-# EM3002_SPECIFIC               		129
-# EM3000D_SPECIFIC                		130
-# EM3002D_SPECIFIC                		131
-# EM121A_SIS_SPECIFIC     				132
-# EM710_SPECIFIC                 		133
-# EM302_SPECIFIC                 		134
-# EM122_SPECIFIC                 		135
-# GEOSWATH_PLUS_SPECIFIC         		136  
-# KLEIN_5410_BSS_SPECIFIC         		137
-# RESON_7125_SPECIFIC     				138
-# EM2000_SPECIFIC    					139
-# EM300_RAW_SPECIFIC             		140
-# EM1002_RAW_SPECIFIC            		141
-# EM2000_RAW_SPECIFIC           		142
-# EM3000_RAW_SPECIFIC 					143
-# EM120_RAW_SPECIFIC             		144
-# EM3002_RAW_SPECIFIC            		145
-# EM3000D_RAW_SPECIFIC        			146
-# EM3002D_RAW_SPECIFIC          		147
-# EM121A_SIS_RAW_SPECIFIC       		148
-# EM2040_SPECIFIC     					149
-# DELTA_T_SPECIFIC     					150
-# R2SONIC_2022_SPECIFIC      			151
-# R2SONIC_2024_SPECIFIC     			152             
-# R2SONIC_2020_SPECIFIC     			153             
-# SB_ECHOTRAC_SPECIFIC (obsolete)       206
-# SB_BATHY2000_SPECIFIC (obsolete)      207
-# SB_MGD77_SPECIFIC (obsolete)          208
-# SB_BDB_SPECIFIC (obsolete)            209
-# SB_NOSHDB_SPECIFIC   (obsolete)       210
-# SB_PDD_SPECIFIC   (obsolete)          211
-# SB_NAVISOUND_SPECIFIC   (obsolete)    212
+DEPTH_ARRAY							= 1
+ACROSS_TRACK_ARRAY					= 2
+ALONG_TRACK_ARRAY					= 3
+TRAVEL_TIME_ARRAY					= 4
+BEAM_ANGLE_ARRAY					= 5
+MEAN_CAL_AMPLITUDE_ARRAY			= 6
+MEAN_REL_AMPLITUDE_ARRAY			= 7
+ECHO_WIDTH_ARRAY					= 8
+QUALITY_FACTOR_ARRAY				= 9
+RECEIVE_HEAVE_ARRAY					= 10
+DEPTH_ERROR_ARRAY					= 11
+ACROSS_TRACK_ERROR_ARRAY			= 12
+ALONG_TRACK_ERROR_ARRAY				= 13
+NOMINAL_DEPTH_ARRAY					= 14
+QUALITY_FLAGS_ARRAY					= 15
+BEAM_FLAGS_ARRAY					= 16
+SIGNAL_TO_NOISE_ARRAY				= 17
+BEAM_ANGLE_FORWARD_ARRAY			= 18
+VERTICAL_ERROR_ARRAY				= 19
+HORIZONTAL_ERROR_ARRAY				= 20
+INTENSITY_SERIES_ARRAY				= 21
+SECTOR_NUMBER_ARRAY					= 22
+DETECTION_INFO_ARRAY				= 23
+INCIDENT_BEAM_ADJ_ARRAY				= 24
+SYSTEM_CLEANING_ARRAY				= 25
+DOPPLER_CORRECTION_ARRAY			= 26
+SONAR_VERT_UNCERTAINTY_ARRAY		= 27
+SCALE_FACTORS						= 100
+SEABEAM_SPECIFIC					= 102
+EM12_SPECIFIC						= 103
+EM100_SPECIFIC						= 104
+EM950_SPECIFIC						= 105
+EM121A_SPECIFIC						= 106
+EM121_SPECIFIC						= 107
+SASS_SPECIFIC						= 108
+SEAMAP_SPECIFIC						= 109
+SEABAT_SPECIFIC						= 110
+EM1000_SPECIFIC						= 111
+TYPEIII_SEABEAM_SPECIFIC			= 112
+SB_AMP_SPECIFIC						= 113
+SEABAT_II_SPECIFIC					= 114
+SEABAT_8101_SPECIFIC (obsolete)		= 115
+SEABEAM_2112_SPECIFIC				= 116
+ELAC_MKII_SPECIFIC					= 117
+EM3000_SPECIFIC						= 118
+EM1002_SPECIFIC						= 119
+EM300_SPECIFIC						= 120
+CMP_SASS_SPECIFIC					= 121
+RESON_8101_SPECIFIC					= 122   
+RESON_8111_SPECIFIC					= 123   
+RESON_8124_SPECIFIC					= 124   
+RESON_8125_SPECIFIC					= 125   
+RESON_8150_SPECIFIC					= 126   
+RESON_8160_SPECIFIC					= 127   
+EM120_SPECIFIC						= 128
+EM3002_SPECIFIC						= 129
+EM3000D_SPECIFIC					= 130
+EM3002D_SPECIFIC					= 131
+EM121A_SIS_SPECIFIC					= 132
+EM710_SPECIFIC						= 133
+EM302_SPECIFIC						= 134
+EM122_SPECIFIC						= 135
+GEOSWATH_PLUS_SPECIFIC				= 136  
+KLEIN_5410_BSS_SPECIFIC				= 137
+RESON_7125_SPECIFIC					= 138
+EM2000_SPECIFIC						= 139
+EM300_RAW_SPECIFIC					= 140
+EM1002_RAW_SPECIFIC					= 141
+EM2000_RAW_SPECIFIC					= 142
+EM3000_RAW_SPECIFIC					= 143
+EM120_RAW_SPECIFIC					= 144
+EM3002_RAW_SPECIFIC					= 145
+EM3000D_RAW_SPECIFIC				= 146
+EM3002D_RAW_SPECIFIC				= 147
+EM121A_SIS_RAW_SPECIFIC				= 148
+EM2040_SPECIFIC						= 149
+DELTA_T_SPECIFIC					= 150
+R2SONIC_2022_SPECIFIC				= 151
+R2SONIC_2024_SPECIFIC				= 152
+R2SONIC_2020_SPECIFIC				= 153
+SB_ECHOTRAC_SPECIFIC				= 206
+SB_BATHY2000_SPECIFIC				= 207
+SB_MGD77_SPECIFIC					= 208
+SB_BDB_SPECIFIC						= 209
+SB_NOSHDB_SPECIFIC					= 210
+SB_PDD_SPECIFIC						= 211
+SB_NAVISOUND_SPECIFIC				= 212
 
 ###############################################################################
 if __name__ == "__main__":
 	main()
-
-
-
-	# def testR2SonicAdjustment():
-# 	'''
-# 	This test code confirms the results are in alignment with those from Norm Campbell at CSIRO who kindly provided the code in F77
-# 	'''
-# 	# adjusted backscatter		  -38.6
-# 	# adjusted backscatter		  -47.6
-# 	# adjusted backscatter		  -27.5
-# 	# adjusted backscatter		  -36.6
-# 	# adjusted backscatter		  -35.5
-
-# 	S1_angle = -58.0
-# 	S1_twtt = 0.20588
-# 	S1_range = 164.8
-# 	H0_TxPower = 197.0
-# 	H0_SoundSpeed = 1468.59
-# 	H0_RxAbsorption = 80.0
-# 	H0_TxBeamWidthVert = 0.0174533
-# 	H0_TxBeamWidthHoriz = 0.0087266
-# 	H0_TxPulseWidth = 0.000275
-# 	H0_RxSpreading = 35.0
-# 	H0_RxGain = 8.0
-# 	H0_VTX_Offset = -21.0 / 100.
-
-# 	n_snpt_val = 470
-# 	S1_uPa = n_snpt_val
-# 	z_snpt_BS_dB = 20. * math.log10(S1_uPa)
-
-# 	adjusted = backscatteradjustment( S1_angle, S1_twtt, S1_range, S1_uPa, H0_TxPower, H0_SoundSpeed, H0_RxAbsorption, H0_TxBeamWidthVert, H0_TxBeamWidthHoriz, H0_TxPulseWidth, H0_RxSpreading, H0_RxGain, H0_VTX_Offset, z_snpt_BS_dB)
-# 	print (adjusted)
-
-# 	S1_angle = -58.0
-# 	S1_twtt = 0.20588
-# 	S1_range = 164.8
-# 	H0_TxPower = 206.0
-# 	H0_SoundSpeed = 1468.59
-# 	H0_RxAbsorption = 80.0
-# 	H0_TxBeamWidthVert = 0.0174533
-# 	H0_TxBeamWidthHoriz = 0.0087266
-# 	H0_TxPulseWidth = 0.000275
-# 	H0_RxSpreading = 35.0
-# 	H0_RxGain = 8.0
-# 	H0_VTX_Offset = -21.0 / 100.
-
-# 	n_snpt_val = 470
-# 	S1_uPa = n_snpt_val
-# 	z_snpt_BS_dB = 20. * math.log10 ( S1_uPa )
-# 	adjusted = backscatteradjustment( S1_angle, S1_twtt, S1_range, S1_uPa, H0_TxPower, H0_SoundSpeed, H0_RxAbsorption, H0_TxBeamWidthVert, H0_TxBeamWidthHoriz, H0_TxPulseWidth, H0_RxSpreading, H0_RxGain, H0_VTX_Offset, z_snpt_BS_dB)
-# 	print (adjusted)
-
-# 	S1_angle = - 58.0
-# 	S1_twtt = 0.20588
-# 	S1_range = 164.8
-# 	H0_TxPower = 197.0
-# 	H0_SoundSpeed = 1468.59
-# 	H0_RxAbsorption = 80.0
-# 	H0_TxBeamWidthVert = 0.0174533
-# 	H0_TxBeamWidthHoriz = 0.0087266
-# 	H0_TxPulseWidth = 0.000275
-# 	H0_RxSpreading = 30.0
-# 	H0_RxGain = 8.0
-# 	H0_VTX_Offset = -21.0 / 100.
-
-# 	n_snpt_val = 470
-# 	S1_uPa = n_snpt_val
-# 	z_snpt_BS_dB = 20. * math.log10 ( S1_uPa )
-# 	adjusted = backscatteradjustment( S1_angle, S1_twtt, S1_range, S1_uPa, H0_TxPower, H0_SoundSpeed, H0_RxAbsorption, H0_TxBeamWidthVert, H0_TxBeamWidthHoriz, H0_TxPulseWidth, H0_RxSpreading, H0_RxGain, H0_VTX_Offset, z_snpt_BS_dB)
-# 	print (adjusted)
-
-# 	S1_angle = - 58.0
-# 	S1_twtt = 0.20588
-# 	S1_range = 164.8
-# 	H0_TxPower = 197.0
-# 	H0_SoundSpeed = 1468.59
-# 	H0_RxAbsorption = 80.0
-# 	H0_TxBeamWidthVert = 0.0174533
-# 	H0_TxBeamWidthHoriz = 0.0087266
-# 	H0_TxPulseWidth = 0.000275
-# 	H0_RxSpreading = 35.0
-# 	H0_RxGain = 6.0
-# 	H0_VTX_Offset = -21.0 / 100.
-
-# 	n_snpt_val = 470
-# 	S1_uPa = n_snpt_val
-# 	z_snpt_BS_dB = 20. * math.log10 ( S1_uPa )
-# 	adjusted = backscatteradjustment( S1_angle, S1_twtt, S1_range, S1_uPa, H0_TxPower, H0_SoundSpeed, H0_RxAbsorption, H0_TxBeamWidthVert, H0_TxBeamWidthHoriz, H0_TxPulseWidth, H0_RxSpreading, H0_RxGain, H0_VTX_Offset, z_snpt_BS_dB)
-# 	print (adjusted)
-
-
-# 	S1_angle = - 58.0
-# 	S1_twtt = 0.20588
-# 	S1_range = 164.8
-# 	H0_TxPower = 207.0
-# 	H0_SoundSpeed = 1468.59
-# 	H0_RxAbsorption = 80.0
-# 	H0_TxBeamWidthVert = 0.0174533
-# 	H0_TxBeamWidthHoriz = 0.0087266
-# 	H0_TxPulseWidth = 0.000275
-# 	H0_RxSpreading = 30.0
-# 	H0_RxGain = 6.0
-# 	H0_VTX_Offset = -21.0 / 100.
-
-# 	n_snpt_val = 470
-# 	S1_uPa = n_snpt_val
-# 	z_snpt_BS_dB = 20. * math.log10 ( S1_uPa )
-# 	adjusted = backscatteradjustment( S1_angle, S1_twtt, S1_range, S1_uPa, H0_TxPower, H0_SoundSpeed, H0_RxAbsorption, H0_TxBeamWidthVert, H0_TxBeamWidthHoriz, H0_TxPulseWidth, H0_RxSpreading, H0_RxGain, H0_VTX_Offset, z_snpt_BS_dB)
-# 	print (adjusted)
-
-# 	return
-
-###############################################################################
-		# if recordidentifier == SWATH_BATHYMETRY:
-		# 	datagram.read()
-		# 	datagram.snippettype = SNIPPET_NONE
-			# print ("%s Lat:%.3f Lon:%.3f Ping:%d Freq:%d Serial %s" % (datagram.currentRecordDateTime(), datagram.latitude, datagram.longitude, datagram.pingnumber, datagram.frequency, datagram.serialnumber))
-
-			# for cross profile plotting
-			# bs = []
-			# for s in datagram.MEAN_REL_AMPLITUDE_ARRAY:
-			# 	if s != 0:
-			# 		bs.append(20 * math.log10(s) - 100)
-			# 	else:
-			# 		bs.append(0)
-
-			# bs = [20 * math.log10(s) - 100 for s in datagram.MEAN_REL_AMPLITUDE_ARRAY]
-			# samplearray = datagram.R2Soniccorrection()
-			# if datagram.frequency == 100000:
-			# 	freq100 = mean(samplearray)
-			# if datagram.frequency == 200000:
-			# 	freq200 = mean(samplearray)
-			# if datagram.frequency == 400000:
-			# 	freq400 = mean(samplearray)
-			# 	# print ("%d,%d,%.3f,%.3f,%.3f" %(pingcount, datagram.pingnumber, freq100, freq200, freq400))
-			# 	print ("%d" %(pingcount))
-			# 	pingcount += 1
-				# if len(bs) > 0:
-				# 	plt.plot(datagram.BEAM_ANGLE_ARRAY, bs, linewidth=0.25, color='blue')
-				# 	plt.ylim([-60,-5])
-				# 	plt.xlim([-60,60])
-				# 	# ax3.plot(datagram.BEAM_ANGLE_ARRAY, datagram.ALONG_TRACK_ARRAY)
-				# 	plt.pause(0.001)
-
-			# datagram.clippolar(-60, 60)
-		# r.fileptr.seek(numberofbytes, 1) # set the file ptr to the end of the record			
