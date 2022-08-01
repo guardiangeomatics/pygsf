@@ -39,7 +39,6 @@ Pygsf will efficiently parse a GSF file for the various components you need to p
 ```
 def readfile(filename):
 	reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
-	print ("Read the file...")
 	while reader.moreData():
 		numberofbytes, recordidentifier, datagram = reader.readDatagram()
 		print(reader.recordnames[recordidentifier])
