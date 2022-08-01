@@ -105,3 +105,37 @@ which will print the depth array of the ping.....
  25.636 25.653 25.722 25.701 25.664 25.618 25.595 25.541 25.593 25.578
  25.563 25.577]
 ```
+
+There are many record types to decode depending on your requirement.  The most common used sets of data are within the SWATH_BATHYMETRY array.  When pygsf reads these files it passes them back to your program as numpy arrays.  the following arrays are available...
+
+```
+DEPTH_ARRAY							=	1
+ACROSS_TRACK_ARRAY    				=	2
+ALONG_TRACK_ARRAY    				=	3
+TRAVEL_TIME_ARRAY    				=	4
+BEAM_ANGLE_ARRAY    				=	5
+MEAN_CAL_AMPLITUDE_ARRAY  			=	6
+MEAN_REL_AMPLITUDE_ARRAY  			=	7
+ECHO_WIDTH_ARRAY    				=	8
+QUALITY_FACTOR_ARRAY    			=	9
+RECEIVE_HEAVE_ARRAY    				=	10
+DEPTH_ERROR_ARRAY			    	=	11
+ACROSS_TRACK_ERROR_ARRAY 			=  	12
+ALONG_TRACK_ERROR_ARRAY				=	13
+NOMINAL_DEPTH_ARRAY    				=	14
+QUALITY_FLAGS_ARRAY    				=	15
+BEAM_FLAGS_ARRAY    				=	16
+SIGNAL_TO_NOISE_ARRAY    			=	17
+BEAM_ANGLE_FORWARD_ARRAY    		=	18
+VERTICAL_ERROR_ARRAY    			=	19
+HORIZONTAL_ERROR_ARRAY    			=	20
+INTENSITY_SERIES_ARRAY    			=	21
+SECTOR_NUMBER_ARRAY    				=	22
+DETECTION_INFO_ARRAY    			=	23
+INCIDENT_BEAM_ADJ_ARRAY    			=	24
+SYSTEM_CLEANING_ARRAY    			=	25
+DOPPLER_CORRECTION_ARRAY    		=	26
+SONAR_VERT_UNCERTAINTY_ARRAY    	=	27
+SCALE_FACTORS     					=	100
+
+```
