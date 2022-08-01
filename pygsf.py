@@ -20,6 +20,7 @@
 # HV_NAVIGATION_ERROR					= 11
 # ATTITUDE								= 12
 
+import sys
 import os.path
 import struct
 import pprint
@@ -61,7 +62,7 @@ SNIPPET_DETECT 							= 3	 # extract the bottom detect snippet value from the sn
 SNIPPET_MEAN5DB 						= 4  # extract the mean of all snippets within 5dB of the mean
 
 # the various frequencies we support in the R2Sonic multispectral files
-ARCIdx = {100000: 0, 200000: 1, 400000: 2}
+ARCIdx = {0: 0, 100000: 1, 200000: 2, 400000: 3}
 
 # the rejection flags used by this software
 REJECT_CLIP = -1
@@ -182,6 +183,7 @@ def testreader():
 	# filename = "C:/sampledata/gsf/20220512_182628_1_Hydro2_P21050_NEOM.gsf"
 	# filename = "C:/sampledata/gsf/0095_20220701_033832.gsf"
 	# filename = "F:/projects/ggmatch/lazgsfcomparisontest/IDN-JI-SR23_1-PH-B46-001_0000_20220419_162536.gsf"
+	filename = "C:/sampledata/gsf/IDN-JI-SR23_1-PH-B46-001_0005_20220419_171703.gsf"
 
 	print (filename)
 
@@ -200,8 +202,8 @@ def testreader():
 		# The user then needs to call the read() method for the class to undertake a fileread and binary decode.  This keeps the read super quick.
 		startbyte = r.fileptr.tell()
 		numberofbytes, recordidentifier, datagram = r.readDatagram()
-		print(recordidentifier)
-
+		# print("{},".format(recordidentifier), end='')
+		# sys.stdout.flush()
 		if recordidentifier == HEADER:
 			datagram.read()
 			# print(datagram)
@@ -230,6 +232,7 @@ def testreader():
 
 		if recordidentifier == SWATH_BATHYMETRY:
 			r.scalefactorsd =  datagram.read(r.scalefactorsd, False)
+			datagram.read({}, True)
 			# print ( datagram.from_timestamp(datagram.timestamp), datagram.timestamp, datagram.longitude, datagram.latitude, datagram.heading, datagram.DEPTH_ARRAY[0])
 
 	print("Duration %.3fs" % (time.time() - start_time )) # time the process

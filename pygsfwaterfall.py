@@ -25,7 +25,7 @@ warnings.filterwarnings('ignore')
 def main():
 	parser = argparse.ArgumentParser(description='Read GSF file and create a reflectivity image.')
 	parser.add_argument('-a', action='store_true', default=False, dest='annotate', help='Annotate the image with timestamps.  [Default: True]')
-	parser.add_argument('-clip', dest='clip', default = 0.5, action='store', help='Clip the minimum and maximum edges of the data by this percentage so the color stretch better represents the data.  [Default - 5.  A good value is -clip 1.]')
+	parser.add_argument('-clip', dest='clip', default = 1, action='store', help='Clip the minimum and maximum edges of the data by this percentage so the color stretch better represents the data.  [Default - 5.  A good value is -clip 1.]')
 	parser.add_argument('-minz', dest='minz', default = 0.0, action='store', help='Use this minimum sample value in the gray scale transform. [Default - 0]')
 	parser.add_argument('-maxz', dest='maxz', default = 0.0, action='store', help='Use this maximum sample value in the gray scale transform. [Default - 0]')
 	parser.add_argument('-color', dest='color', default = 'gray', action='store', help='Specify the color palette.  Options are : -color yellow_brown_log, -color gray, -color yellow_brown or any of the palette filenames in the script folder. [Default = gray.]' )
@@ -95,6 +95,7 @@ def createWaterfall(filename, odir, colorScale, beamCount, zoom=1.0, clip=1, min
 
 	start_time = time.time() # time the process
 	recCount = 0
+	waterfall0 = []
 	waterfall100 = []
 	waterfall200 = []
 	waterfall400 = []
@@ -120,7 +121,7 @@ def createWaterfall(filename, odir, colorScale, beamCount, zoom=1.0, clip=1, min
 			samplearray = datagram.R2Soniccorrection()
 			idx = pygsf.ARCIdx[datagram.frequency]
 
-			# we need to stretch the data to make it isometric, so lets use numpy interp routing to do that for Us
+			# we need to stretch the data to make it isometric, so lets use numpy interp routine to do that for Us
 			s2 = []
 			xt = []
 			for i, x in enumerate(datagram.ACROSS_TRACK_ARRAY):
@@ -144,6 +145,8 @@ def createWaterfall(filename, odir, colorScale, beamCount, zoom=1.0, clip=1, min
 			x = np.linspace(leftExtent, rightExtent, outputResolution) #the required samples needs to be about the same as the original number of samples, spread across the across track range
 			newBackscatters = np.interp(x, xp, fp, left=0.0, right=0.0)
 			
+			if datagram.frequency == 0:
+				waterfall0.append(np.asarray(newBackscatters))			
 			if datagram.frequency == 100000:
 				waterfall100.append(np.asarray(newBackscatters))			
 				# print ("xt %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f" %(samplearray[0], samplearray[10], samplearray[20], samplearray[30], samplearray[40], samplearray[50], samplearray[60], samplearray[70], samplearray[80], samplearray[90], samplearray[100], samplearray[110], samplearray[120], samplearray[130], samplearray[140], samplearray[150], samplearray[160], samplearray[170], samplearray[180], samplearray[190],))
@@ -163,13 +166,15 @@ def createWaterfall(filename, odir, colorScale, beamCount, zoom=1.0, clip=1, min
 	update_progress("Decoding .gsf file", 1)
 	r.close()	
 
-	createImage(filename, odir, "100kHz", colorScale, beamCount, waterfall100, zoom, clip, minz, maxz, invert, annotate, xResolution, yResolution, rotate, leftExtent, rightExtent, distanceTravelled, navigation)
-	createImage(filename, odir, "200kHz", colorScale, beamCount, waterfall200, zoom, clip, minz, maxz, invert, annotate, xResolution, yResolution, rotate, leftExtent, rightExtent, distanceTravelled, navigation)
-	createImage(filename, odir, "400kHz", colorScale, beamCount, waterfall400, zoom, clip, minz, maxz, invert, annotate, xResolution, yResolution, rotate, leftExtent, rightExtent, distanceTravelled, navigation)
+	createImage(filename, odir, "0kHz", colorScale, beamCount, waterfall0, zoom, clip, minz, maxz, invert, annotate, xResolution, yResolution, rotate, leftExtent, rightExtent, distanceTravelled, navigation)
+	# createImage(filename, odir, "100kHz", colorScale, beamCount, waterfall100, zoom, clip, minz, maxz, invert, annotate, xResolution, yResolution, rotate, leftExtent, rightExtent, distanceTravelled, navigation)
+	# createImage(filename, odir, "200kHz", colorScale, beamCount, waterfall200, zoom, clip, minz, maxz, invert, annotate, xResolution, yResolution, rotate, leftExtent, rightExtent, distanceTravelled, navigation)
+	# createImage(filename, odir, "400kHz", colorScale, beamCount, waterfall400, zoom, clip, minz, maxz, invert, annotate, xResolution, yResolution, rotate, leftExtent, rightExtent, distanceTravelled, navigation)
 
+##################################################################################
 def createImage(filename, odir, suffix, colorScale, beamCount, waterfall, zoom=1.0, clip=1, minz=0, maxz=100, invert=True, annotate=True, xResolution=1, yResolution=1, rotate=False, leftExtent=-100, rightExtent=100, distanceTravelled=0, navigation=[]):
 
-	isoStretchFactor = (yResolution/xResolution) * zoom
+	isoStretchFactor = math.ceil((yResolution/xResolution) * zoom)
 	print ("xRes %.2f yRes %.2f isoStretchFactor %.2f" % (xResolution, yResolution, isoStretchFactor))
 
 	# we have all data loaded, so now lets make a waterfall image...

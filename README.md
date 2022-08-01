@@ -21,14 +21,15 @@ By being space efficient, the files are MUCH smaller than the same data in vendo
 The design used integer arrays to store geophysical data.  This would appear to be a little dated given terabytes of storage are now cheap, but please consider this example.
 
 
-| File | Bytes | Percetage Reduction |
+| File | Bytes | % Size |
 | ------------------- | ------------------------ | ---------------------- |
-| IDN-JI-SR23_1-PH-B46-001_0005_20220419_171703.KMALL | | |
-| Same data in GSF file| 207574Kb | |
-| Same data in GSF.7Z | | |
+| IDN-JI-SR23_1-PH-B46-001_0005_20220419_171703.KMALL |1,362,533,000 | 100%|
+| Same data in GSF file| 207,574,000 | 15.2%|
+| Same data in GSF.7Z | 58,742,000| 4.3%|
 
+The file reduction is impressive.  It is worth noting that we have NOT reduced the number of position, attitude, soundings, backscatter observations in the file.  We have removed the items processing packages typically ignore at import stage.  additionally we have restructured the data into a computationally efficient structure.
 
-Overall, GSF is fantastic.  where it has struggled is the file format is SO dense, it is not easy to read.  There is a fantastic C library (gsflib) which is great if you are a seasoned programmer.  If you are a student, researcher or keen data processor who wish to access the GSF files, then they were pretty impregnable.
+Overall, GSF is excellent.  where it has struggled is the file format is SO dense, it is not easy to read.  There is a very good C library (gsflib) which is great if you are a seasoned programmer.  If you are a student, researcher or keen data processor who wish to access the GSF files, then they were pretty impregnable.
 The folks at Guardian Geomatics recognise that remote processing, cloud processing and massive parallel processing are now on our doorsteps and we need to leverage this technologies.  To assist the industry in this regards, we have decided to release pygsf.
 Pygsf will efficiently parse a GSF file for the various components you need to pull into a python script.  This can be a simple python list for making a track plot, understanding data holdings, coverage or a numpy array for more complex tasks.
 
