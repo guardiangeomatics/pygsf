@@ -65,13 +65,17 @@ def readfile(filename):
 	'''sample read script to demonstrate how to iterate through a GSF file
 	'''
 	reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
-
-	print ("Read the file...")
 	while reader.moreData():
-		numberofbytes, recordidentifier, datagram = reader.readDatagram()
+		numberofbytes, recordidentifier, datagram = reader.readdatagram()
 		print(reader.recordnames[recordidentifier])
+
+		if recordidentifier == SWATH_BATHYMETRY:
+			reader.scalefactorsd = datagram.read()
+			depths = datagram.DEPTH_ARRAY
+			print (depths)
+
 	return
-	
+
 ###############################################################################
 def summary(filename):
 	'''sample read script to compute a summary of contents.
@@ -86,7 +90,7 @@ def summary(filename):
 	while reader.moreData():
 		# read a datagram.  If we support it, return the datagram type and a class for that datagram
 		# The user then needs to call the read() method for the class to undertake a fileread and binary decode.  This keeps the read super quick.
-		numberofbytes, recordidentifier, datagram = reader.readDatagram()
+		numberofbytes, recordidentifier, datagram = reader.readdatagram()
 		
 		if not recordidentifier in recordsummary:
 			recordsummary[recordidentifier] = [numberofbytes]
@@ -133,7 +137,7 @@ def testreader(filename):
 		# read a datagram.  If we support it, return the datagram type and a class for that datagram
 		# The user then needs to call the read() method for the class to undertake a fileread and binary decode.  This keeps the read super quick.
 		startbyte = r.fileptr.tell()
-		numberofbytes, recordidentifier, datagram = r.readDatagram()
+		numberofbytes, recordidentifier, datagram = r.readdatagram()
 		# print("{},".format(recordidentifier), end='')
 		# sys.stdout.flush()
 		if recordidentifier == HEADER:
@@ -1389,7 +1393,7 @@ class GSFREADER:
 		return pprint.pformat(vars(self))
 
 	###########################################################################
-	def readDatagramBytes(self, offset, byteCount):
+	def readdatagramBytes(self, offset, byteCount):
 		'''read the entire raw bytes for the datagram without changing the file pointer.  this is used for file conditioning'''
 		curr = self.fileptr.tell()
 		self.fileptr.seek(offset, 0)   # move the file pointer to the start of the record so we can read from disc			  
@@ -1412,7 +1416,7 @@ class GSFREADER:
 		self.rewind()
 
 		while self.moreData():
-			numberofbytes, recordidentifier, datagram = self.readDatagram()
+			numberofbytes, recordidentifier, datagram = self.readdatagram()
 			if recordidentifier == 	ATTITUDE:
 				datagram.read()
 				ts			= np.append(ts, datagram.ts)
@@ -1436,7 +1440,7 @@ class GSFREADER:
 		self.rewind()
 
 		while self.moreData():
-			numberofbytes, recordidentifier, datagram = self.readDatagram()
+			numberofbytes, recordidentifier, datagram = self.readdatagram()
 			if recordidentifier == SWATH_BATHYMETRY:
 				datagram.read(True)
 				if previoustimestamp == 0:
@@ -1460,7 +1464,7 @@ class GSFREADER:
 		self.rewind()
 
 		while self.moreData():
-			numberofbytes, recordidentifier, datagram = self.readDatagram()
+			numberofbytes, recordidentifier, datagram = self.readdatagram()
 			if recordidentifier == SWATH_BATHYMETRY:
 				numpings += 1
 
@@ -1468,7 +1472,7 @@ class GSFREADER:
 		return numpings
 		
 	###########################################################################
-	def readDatagram(self):
+	def readdatagram(self):
 		# read the datagram header.  This permits us to skip datagrams we do not support
 		numberofbytes, recordidentifier, haschecksum, hdrlen = self.sniffDatagramHeader()
 		# print ("ID %d Bytes %d ftell %d" % (recordidentifier, numberofbytes, self.fileptr.tell()))
