@@ -104,12 +104,11 @@ def demobackscatter(filename):
 			else:
 				backscatterarray = np.vstack((backscatterarray,bs))
 
-
 	im_denoised = scipy.ndimage.gaussian_filter(backscatterarray, 2)
 	im_median = ndimage.median_filter(backscatterarray, 3)
 
 	# Plot the grid
-	fig = plt.figure(figsize=(8, 8), dpi=300)
+	fig = plt.figure(figsize=(8, 8), dpi=150)
 	columns = 3
 	rows = 1
 	fig.add_subplot(1, 1, 1)
@@ -118,7 +117,7 @@ def demobackscatter(filename):
 	fig.add_subplot(1, 2, 2)
 	plt.imshow(im_denoised, cmap='gray', vmin=0, vmax=255)
 
-	fig.add_subplot(1, 3, 3)
+	fig.add_subplot(1, 3, 1)
 	plt.imshow(im_median, cmap='gray', vmin=0, vmax=255)
 
 	plt.show()
