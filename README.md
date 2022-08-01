@@ -36,7 +36,7 @@ Pygsf will efficiently parse a GSF file for the various components you need to p
 
 ## Sample Reader
 
-<code>
+```
 	###############################################################################
 	def readfile(filename):
 		reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
@@ -47,7 +47,7 @@ Pygsf will efficiently parse a GSF file for the various components you need to p
 		return
 		
 	###############################################################################
-</code>
+```
 
 
 
