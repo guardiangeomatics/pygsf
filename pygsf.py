@@ -59,7 +59,6 @@ def main():
 	summary(filename)
 	testreader(filename)
 
-
 ###############################################################################
 def readfile(filename):
 	'''sample read script to demonstrate how to iterate through a GSF file

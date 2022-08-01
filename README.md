@@ -35,15 +35,73 @@ The folks at Guardian Geomatics recognise that remote processing, cloud processi
 Pygsf will efficiently parse a GSF file for the various components you need to pull into a python script.  This can be a simple python list for making a track plot, understanding data holdings, coverage or a numpy array for more complex tasks.
 
 ## Sample Reader
+The GSF reader removes the complexity of the file format.  All you need to do is open the file and then read in a loop until all the datagrams in the file are read and we are at end of file.
 
 ```
 def readfile(filename):
 	reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
 	while reader.moreData():
-		numberofbytes, recordidentifier, datagram = reader.readDatagram()
+		numberofbytes, recordidentifier, datagram = reader.readdatagram()
 		print(reader.recordnames[recordidentifier])
 	return
 ```
 
+which will print the name of each datagram.....
 
+```
+SWATH_BATHYMETRY
+SWATH_BATHYMETRY
+ATTITUDE
+SWATH_BATHYMETRY
+SWATH_BATHYMETRY
+SWATH_BATHYMETRY
+```
 
+You will typically need to dig into the datagram to access the contents.  this is accomplished by calling datagram.read(), which will decode each record type and present them back to you in native python objects, lists, numpy arrays as appopriate for the data type in question
+
+```
+	reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
+	while reader.moreData():
+		numberofbytes, recordidentifier, datagram = reader.readdatagram()
+		if recordidentifier == SWATH_BATHYMETRY:
+			datagram.read()
+			print (datagram.timestamp, datagram.longitude, datagram.latitude)
+
+```
+
+Digging a little deeper you, when reading the SWATH_BATHYMETRY records you can easily load these into a numpy array as follows:
+
+```
+	reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
+	while reader.moreData():
+		numberofbytes, recordidentifier, datagram = reader.readdatagram()
+		print(reader.recordnames[recordidentifier])
+
+		if recordidentifier == SWATH_BATHYMETRY:
+			reader.scalefactorsd = datagram.read()
+			depths = datagram.DEPTH_ARRAY
+			print (depths)
+
+```
+
+which will print the depth array of the ping.....
+
+```
+[25.575 25.564 25.556 25.524 25.548 25.608 25.613 25.598 25.605 25.575
+ 25.576 25.638 25.609 25.611 25.588 25.603 25.561 25.582 25.582 25.589
+ 25.595 25.607 25.597 25.581 25.583 25.557 25.62  25.62  25.619 25.619
+ 25.612 25.602 25.599 25.511 25.639 25.633 25.623 25.62  25.578 25.675
+ 25.636 25.631 25.606 25.566 25.563 25.644 25.638 25.608 25.568 25.687
+ 25.609 25.612 25.597 25.579 25.588 25.594 25.615 25.605 25.6   25.561
+ 25.593 25.629 25.603 25.61  25.598 25.639 25.666 25.658 25.668 25.622
+ 25.657 25.645 25.639 25.607 25.62  25.657 25.686 25.659 25.632 25.61
+ 25.586 25.563 25.552 25.53  25.519 25.516 25.552 25.585 25.577 25.576
+ 25.556 25.569 25.57  25.567 25.739 25.683 25.713 25.675 25.635 25.633
+ 25.622 25.623 25.61  25.586 25.592 25.597 25.628 25.649 25.655 25.631
+ 25.604 25.637 25.698 25.691 25.659 25.662 25.667 25.641 25.637 25.575
+ 25.609 25.605 25.512 25.556 25.567 25.53  25.569 25.654 25.583 25.603
+ 25.63  25.635 25.646 25.663 25.671 25.632 25.665 25.669 25.609 25.612
+ 25.595 25.536 25.521 25.513 25.533 25.534 25.526 25.649 25.621 25.624
+ 25.636 25.653 25.722 25.701 25.664 25.618 25.595 25.541 25.593 25.578
+ 25.563 25.577]
+```
