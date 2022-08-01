@@ -83,7 +83,18 @@ def summary(filename):
 		if recordidentifier == SWATH_BATHYMETRY:
 			reader.scalefactorsd = datagram.read(True)
 			for record in datagram.subrecords:
-				subrecordsummary[record[0]] = [record[1]]
+				if not record[0] in subrecordsummary:
+					subrecordsummary[record[0]] = [record[1]]
+				else:
+					subrecordsummary[record[0]].append(record[1])
+	
+	for rec in recordsummary:
+		byteslist = recordsummary[rec]
+		print("RecordID:%40s Count:%d 		TotalBytes:%d" % (reader.recordnames[rec].ljust(40), len(byteslist), sum(byteslist )))
+
+	for rec in subrecordsummary:
+		byteslist = subrecordsummary[rec]
+		print("SUBRecordID:%40s Count:%d 		TotalBytes:%d" % (reader.subrecordnames[rec].ljust(40), len(byteslist), sum(byteslist )))
 
 	print("Duration %.3fs" % (time.time() - start_time )) # time the process
 	return
