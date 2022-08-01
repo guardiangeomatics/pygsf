@@ -49,22 +49,36 @@ def main():
 	# filename = "C://sampledata/gsf/Block_G_X_P4000.gsf"
 	# filename = "C:/sampledata/gsf/IDN-ME-SR23_1-P-B46-01-CL_1075_20220530_112406.gsf"
 	# filename = "C:/sampledata/gsf/IDN-ME-SR23_1-RD14-B46-S200_0565_20220605_134739.gsf"
-	filename = "C:/sampledata/gsf/IDN-ME-SR23_1-P-B46-01-CL_1075_20220530_112406.gsf"
+	# filename = "C:/sampledata/gsf/IDN-ME-SR23_1-P-B46-01-CL_1075_20220530_112406.gsf"
 	# filename = "C:/sampledata/gsf/20220512_182628_1_Hydro2_P21050_NEOM.gsf"
 	# filename = "C:/sampledata/gsf/0095_20220701_033832.gsf"
 	# filename = "F:/projects/ggmatch/lazgsfcomparisontest/IDN-JI-SR23_1-PH-B46-001_0000_20220419_162536.gsf"
 	filename = "C:/sampledata/gsf/IDN-JI-SR23_1-PH-B46-001_0005_20220419_171703.gsf"
 
+	readfile(filename)
 	summary(filename)
 	testreader(filename)
 
+
+###############################################################################
+def readfile(filename):
+	'''sample read script to demonstrate how to iterate through a GSF file
+	'''
+	reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
+
+	print ("Read the file...")
+	while reader.moreData():
+		numberofbytes, recordidentifier, datagram = reader.readDatagram()
+		print(reader.recordnames[recordidentifier])
+	return
+	
 ###############################################################################
 def summary(filename):
 	'''sample read script to compute a summary of contents.
 	'''
 	start_time = time.time() # time the process so we can keep it quick
-	# create a GSFREADER class and pass the filename
-	reader = GSFREADER(filename)
+	
+	reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
 
 	recordsummary = {}
 	subrecordsummary = {}
@@ -72,7 +86,6 @@ def summary(filename):
 	while reader.moreData():
 		# read a datagram.  If we support it, return the datagram type and a class for that datagram
 		# The user then needs to call the read() method for the class to undertake a fileread and binary decode.  This keeps the read super quick.
-		startbyte = reader.fileptr.tell()
 		numberofbytes, recordidentifier, datagram = reader.readDatagram()
 		
 		if not recordidentifier in recordsummary:

@@ -1,5 +1,7 @@
-# pygsf
-Native python reader for generic sensor format (gsf) files.
+# PYGSF 
+## Native python reader for generic sensor format (gsf) files.
+
+## Introduction
 
 As the industry moves towards cloud computing, remote processing and multi CPU processing using an open stack codebase, Guardian Geomatics has taken the path of opening some of our sources for student, government and researches to use free of charge.
 
@@ -20,7 +22,6 @@ By being space efficient, the files are MUCH smaller than the same data in vendo
 * Compressible
 The design used integer arrays to store geophysical data.  This would appear to be a little dated given terabytes of storage are now cheap, but please consider this example.
 
-
 | File | Bytes | % Size |
 | ------------------- | ------------------------ | ---------------------- |
 | IDN-JI-SR23_1-PH-B46-001_0005_20220419_171703.KMALL |1,362,533,000 | 100%|
@@ -33,7 +34,20 @@ Overall, GSF is excellent.  where it has struggled is the file format is SO dens
 The folks at Guardian Geomatics recognise that remote processing, cloud processing and massive parallel processing are now on our doorsteps and we need to leverage this technologies.  To assist the industry in this regards, we have decided to release pygsf.
 Pygsf will efficiently parse a GSF file for the various components you need to pull into a python script.  This can be a simple python list for making a track plot, understanding data holdings, coverage or a numpy array for more complex tasks.
 
+## Sample Reader
 
+<code>
+	###############################################################################
+	def readfile(filename):
+		reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
+		print ("Read the file...")
+		while reader.moreData():
+			numberofbytes, recordidentifier, datagram = reader.readDatagram()
+			print(reader.recordnames[recordidentifier])
+		return
+		
+	###############################################################################
+</code>
 
 
 
