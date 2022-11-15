@@ -1,7 +1,7 @@
 #name:			pygsf
-#created:		July 2022
+#created:		July 2017
 #by:			p.kennedy@guardiangeomatics.com
-#description:	python module to read a Generic Sensor Formaty (GSF) file natively
+#description:	python module to read and write a Generic Sensor Formaty (GSF) file natively
 #notes:			See main at end of script for example how to use this
 #based on GSF Version 3.05
 
@@ -20,7 +20,6 @@
 # HV_NAVIGATION_ERROR					= 11
 # ATTITUDE								= 12
 
-import sys
 import os.path
 import struct
 import pprint
@@ -31,14 +30,151 @@ import random
 from datetime import datetime
 from datetime import timedelta
 from statistics import mean
-from matplotlib.colors import Normalize
-# from delivershared import log as log, makedirs
+# import mmap
+from delivershared import log as log, makedirs
+# for testing only...
 import numpy as np
 
+#/* The high order 4 bits are used to define the field size for this array */
+GSF_FIELD_SIZE_DEFAULT  = 0x00  #/* Default values for field size are used used for all beam arrays */
+GSF_FIELD_SIZE_ONE	  = 0x10  #/* value saved as a one byte value after applying scale and offset */
+GSF_FIELD_SIZE_TWO	  = 0x20  #/* value saved as a two byte value after applying scale and offset */
+GSF_FIELD_SIZE_FOUR	 = 0x40  #/* value saved as a four byte value after applying scale and offset */
+GSF_MAX_PING_ARRAY_SUBRECORDS = 26
+
+# Record Decriptions (See page 82)
+HEADER 									= 1
+SWATH_BATHYMETRY						= 2
+SOUND_VELOCITY_PROFILE					= 3
+PROCESSING_PARAMETERS					= 4
+SENSOR_PARAMETERS						= 5
+COMMENT									= 6
+HISTORY									= 7
+NAVIGATION_ERROR						= 8
+SWATH_BATHY_SUMMARY						= 9
+SINGLE_BEAM_SOUNDING					= 10
+HV_NAVIGATION_ERROR						= 11
+ATTITUDE								= 12
+
+SNIPPET_NONE 							= 0  # extract the mean value from the snippet array
+SNIPPET_MEAN 							= 1  # extract the mean value from the snippet array
+SNIPPET_MAX 							= 2  # extract the maximum value from the snippet array
+SNIPPET_DETECT 							= 3	 # extract the bottom detect snippet value from the snippet array
+SNIPPET_MEAN5DB 						= 4  # extract the mean of all snippets within 5dB of the mean
+
+# the various frequencies we support in the R2Sonic multispectral files
+ARCIdx = {100000: 0, 200000: 1, 400000: 2}
+
+# the rejection flags used by this software
+REJECT_CLIP = -1
+REJECT_RANGE= -2
+REJECT_INTENSITY= -4
+
+
+# Subrecord Description Subrecord Identifier
+DEPTH_ARRAY							=	1
+ACROSS_TRACK_ARRAY    				=	2
+ALONG_TRACK_ARRAY    				=	3
+TRAVEL_TIME_ARRAY    				=	4
+BEAM_ANGLE_ARRAY    				=	5
+MEAN_CAL_AMPLITUDE_ARRAY  			=	6
+MEAN_REL_AMPLITUDE_ARRAY  			=	7
+ECHO_WIDTH_ARRAY    				=	8
+QUALITY_FACTOR_ARRAY    			=	9
+RECEIVE_HEAVE_ARRAY    				=	10
+DEPTH_ERROR_ARRAY			    	=	11
+ACROSS_TRACK_ERROR_ARRAY 			=  	12
+ALONG_TRACK_ERROR_ARRAY				=	13
+NOMINAL_DEPTH_ARRAY    				=	14
+QUALITY_FLAGS_ARRAY    				=	15
+BEAM_FLAGS_ARRAY    				=	16
+SIGNAL_TO_NOISE_ARRAY    			=	17
+BEAM_ANGLE_FORWARD_ARRAY    		=	18
+VERTICAL_ERROR_ARRAY    			=	19
+HORIZONTAL_ERROR_ARRAY    			=	20
+INTENSITY_SERIES_ARRAY    			=	21
+SECTOR_NUMBER_ARRAY    				=	22
+DETECTION_INFO_ARRAY    			=	23
+INCIDENT_BEAM_ADJ_ARRAY    			=	24
+SYSTEM_CLEANING_ARRAY    			=	25
+DOPPLER_CORRECTION_ARRAY    		=	26
+SONAR_VERT_UNCERTAINTY_ARRAY    	=	27
+SCALE_FACTORS     					=	100
+# SEABEAM_SPECIFIC    				=	102
+# EM12_SPECIFIC     					=	103
+# EM100_SPECIFIC    					=	104
+# EM950_SPECIFIC    					105
+# EM121A_SPECIFIC    					106
+# EM121_SPECIFIC    					107
+# SASS_SPECIFIC (To Be Replaced By CMP_SASS)    108
+# SEAMAP_SPECIFIC                       109
+# SEABAT_SPECIFIC    					110
+# EM1000_SPECIFIC    					111
+# TYPEIII_SEABEAM_SPECIFIC (To Be Replaced By CMP_SASS )    112
+# SB_AMP_SPECIFIC       				113
+# SEABAT_II_SPECIFIC    				114
+# SEABAT_8101_SPECIFIC (obsolete)     	115
+# SEABEAM_2112_SPECIFIC    				116
+# ELAC_MKII_SPECIFIC    				117
+# EM3000_SPECIFIC    					118
+# EM1002_SPECIFIC 						119
+# EM300_SPECIFIC    					120
+# CMP_SASS_SPECIFIC (To replace SASS and TYPEIII_SEABEAM)    121
+# RESON_8101_SPECIFIC           		122   
+# RESON_8111_SPECIFIC           		123   
+# RESON_8124_SPECIFIC           		124   
+# RESON_8125_SPECIFIC           		125   
+# RESON_8150_SPECIFIC           		126   
+# RESON_8160_SPECIFIC           		127   
+# EM120_SPECIFIC                		128
+# EM3002_SPECIFIC               		129
+# EM3000D_SPECIFIC                		130
+# EM3002D_SPECIFIC                		131
+# EM121A_SIS_SPECIFIC     				132
+# EM710_SPECIFIC                 		133
+# EM302_SPECIFIC                 		134
+# EM122_SPECIFIC                 		135
+# GEOSWATH_PLUS_SPECIFIC         		136  
+# KLEIN_5410_BSS_SPECIFIC         		137
+# RESON_7125_SPECIFIC     				138
+# EM2000_SPECIFIC    					139
+# EM300_RAW_SPECIFIC             		140
+# EM1002_RAW_SPECIFIC            		141
+# EM2000_RAW_SPECIFIC           		142
+# EM3000_RAW_SPECIFIC 					143
+# EM120_RAW_SPECIFIC             		144
+# EM3002_RAW_SPECIFIC            		145
+# EM3000D_RAW_SPECIFIC        			146
+# EM3002D_RAW_SPECIFIC          		147
+# EM121A_SIS_RAW_SPECIFIC       		148
+# EM2040_SPECIFIC     					149
+# DELTA_T_SPECIFIC     					150
+# R2SONIC_2022_SPECIFIC      			151
+# R2SONIC_2024_SPECIFIC     			152             
+# R2SONIC_2020_SPECIFIC     			153             
+# SB_ECHOTRAC_SPECIFIC (obsolete)       206
+# SB_BATHY2000_SPECIFIC (obsolete)      207
+# SB_MGD77_SPECIFIC (obsolete)          208
+# SB_BDB_SPECIFIC (obsolete)            209
+# SB_NOSHDB_SPECIFIC   (obsolete)       210
+# SB_PDD_SPECIFIC   (obsolete)          211
+# SB_NAVISOUND_SPECIFIC   (obsolete)    212
 ###############################################################################
 def main():
 
+	# testR2SonicAdjustment()
+	testreader()
+	# conditioner()
+
+###############################################################################
+def testreader():
+	'''
+	sample read script so we can see how to use the code
+	'''
+	start_time = time.time() # time the process so we can keep it quick
+
 	# filename = "C:/projects/multispectral/PatriciaBasin/20161130-1907 - 0001-2026_1.gsf"
+
 	# filename = "C:/development/python/sample_subset.gsf"
 	# filename = "F:/Projects/multispectral/_BedfordBasin2016/20160331 - 125110 - 0001-2026_1.gsf"
 	# filename = "F:/Projects/multispectral/_Newbex/20170524-134208 - 0001-2026_1.gsf"
@@ -48,146 +184,28 @@ def main():
 	# filename = "v:/jp/C_S20230_0491_20211228_004807.gsf"
 	# filename = "D:/LogData/gsf/20220512_161545_1_Hydro2_P21050_NEOM.gsf"
 	# filename = "C://sampledata/gsf/Block_G_X_P4000.gsf"
+
 	# filename = "C:/sampledata/gsf/IDN-ME-SR23_1-P-B46-01-CL_1075_20220530_112406.gsf"
 	# filename = "C:/sampledata/gsf/IDN-ME-SR23_1-RD14-B46-S200_0565_20220605_134739.gsf"
-	# filename = "C:/sampledata/gsf/IDN-ME-SR23_1-P-B46-01-CL_1075_20220530_112406.gsf"
 	# filename = "C:/sampledata/gsf/20220512_182628_1_Hydro2_P21050_NEOM.gsf"
 	# filename = "C:/sampledata/gsf/0095_20220701_033832.gsf"
 	# filename = "F:/projects/ggmatch/lazgsfcomparisontest/IDN-JI-SR23_1-PH-B46-001_0000_20220419_162536.gsf"
-	filename = "C:/sampledata/gsf/IDN-JI-SR23_1-PH-B46-001_0005_20220419_171703.gsf"
-	filename = "C:/sampledata/gsf/IDN-ME-SR23_1-PH-B46-104_0580_20220605_171439.gsf"
-
-	demobackscatter(filename)
-
-	demo1(filename)
-	summary(filename)
-	testreader(filename)
-
-###############################################################################
-def demo1(filename):
-	'''sample read script to demonstrate how to iterate through a GSF file
-	'''
-	reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
-	while reader.moreData():
-		numberofbytes, recordidentifier, datagram = reader.readdatagram()
-		print(reader.recordnames[recordidentifier])
-
-		if recordidentifier == SWATH_BATHYMETRY:
-			reader.scalefactorsd = datagram.read()
-			depths = datagram.DEPTH_ARRAY
-			print (depths)
-
-	return
-
-###############################################################################
-def demobackscatter(filename):
-	'''sample read script to demonstrate how to iterate through a GSF file and load backscatter to a numpy array
-	'''
-	import matplotlib.pyplot as plt
-	from scipy import misc
-	import scipy
-	from scipy import ndimage
-
-
-	backscatterarray = None
-
-	reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
-	while reader.moreData():
-		numberofbytes, recordidentifier, datagram = reader.readdatagram()
-		# print(reader.recordnames[recordidentifier])
-
-		if recordidentifier == SWATH_BATHYMETRY:
-			reader.scalefactorsd = datagram.read()
-			bs = datagram.MEAN_REL_AMPLITUDE_ARRAY
-			if backscatterarray is None:
-				backscatterarray = bs
-			else:
-				backscatterarray = np.vstack((backscatterarray,bs))
-
-	im_denoised = scipy.ndimage.gaussian_filter(backscatterarray, 2)
-	im_median = ndimage.median_filter(backscatterarray, 3)
-
-	# Plot the grid
-	fig = plt.figure(figsize=(8, 8), dpi=150)
-	columns = 3
-	rows = 1
-	fig.add_subplot(1, 1, 1)
-	plt.imshow(backscatterarray, cmap='gray', vmin=0, vmax=255)
-
-	fig.add_subplot(1, 2, 2)
-	plt.imshow(im_denoised, cmap='gray', vmin=0, vmax=255)
-
-	fig.add_subplot(1, 3, 1)
-	plt.imshow(im_median, cmap='gray', vmin=0, vmax=255)
-
-	plt.show()
-
-	return
-
-###############################################################################
-def summary(filename):
-	'''sample read script to compute a summary of contents.
-	'''
-	start_time = time.time() # time the process so we can keep it quick
-	
-	reader = GSFREADER(filename) # create a GSFREADER class and pass the filename
-
-	recordsummary = {}
-	subrecordsummary = {}
-	print ("Read the file...")
-	while reader.moreData():
-		# read a datagram.  If we support it, return the datagram type and a class for that datagram
-		# The user then needs to call the read() method for the class to undertake a fileread and binary decode.  This keeps the read super quick.
-		numberofbytes, recordidentifier, datagram = reader.readdatagram()
-		
-		if not recordidentifier in recordsummary:
-			recordsummary[recordidentifier] = [numberofbytes]
-		else:
-			recordsummary[recordidentifier].append(numberofbytes)
-
-		if recordidentifier == SWATH_BATHYMETRY:
-			reader.scalefactorsd = datagram.read(True)
-			for record in datagram.subrecords:
-				if not record[0] in subrecordsummary:
-					subrecordsummary[record[0]] = [record[1]]
-				else:
-					subrecordsummary[record[0]].append(record[1])
-	
-	for rec in recordsummary:
-		byteslist = recordsummary[rec]
-		print("RecordID:%40s Count:%d 		TotalBytes:%d" % (reader.recordnames[rec].ljust(40), len(byteslist), sum(byteslist )))
-
-	for rec in subrecordsummary:
-		byteslist = subrecordsummary[rec]
-		print("SUBRecordID:%40s Count:%d 		TotalBytes:%d" % (reader.subrecordnames[rec].ljust(40), len(byteslist), sum(byteslist )))
-
-	print("Duration %.3fs" % (time.time() - start_time )) # time the process
-	return
-
-###############################################################################
-def testreader(filename):
-	'''sample read script so we can see how to use the code
-	'''
-
+	filename = "D:/projects/likehart/01_GSF/0116_20220728_075347.gsf"
 	print (filename)
-
 	pingcount = 0
-	start_time = time.time() # time the process so we can keep it quick
 	# create a GSFREADER class and pass the filename
 	r = GSFREADER(filename)
+	# r.loadscalefactors()
 	navigation = r.loadnavigation()
-	for nav in navigation:
-		print (nav)
-	ts, roll, pitch, heave, heading = r.loadattitude()
+	# ts, roll, pitch, heave, heading = r.loadattitude()
 
-	print ("Demonstrating how to read entire file...")
 	while r.moreData():
-		# read a datagram.  If we support it, return the datagram type and a class for that datagram
+		# read a datagram.  If we support it, return the datagram type and aclass for that datagram
 		# The user then needs to call the read() method for the class to undertake a fileread and binary decode.  This keeps the read super quick.
 		startbyte = r.fileptr.tell()
-		numberofbytes, recordidentifier, datagram = r.readdatagram()
-		# print("{},".format(recordidentifier), end='')
-		# sys.stdout.flush()
+		numberofbytes, recordidentifier, datagram = r.readDatagram()
+		# print(recordidentifier)
+
 		if recordidentifier == HEADER:
 			datagram.read()
 			# print(datagram)
@@ -208,15 +226,14 @@ def testreader(filename):
 			datagram.read()
 			# print(datagram)
 
-		if recordidentifier == 	ATTITUDE:
-			datagram.read()
-			r.attitudedata = np.append(r.attitudedata, datagram.attitudearray, axis=0)
+		# if recordidentifier == 	ATTITUDE:
+			# datagram.read()
+			# r.attitudedata = np.append(r.attitudedata, datagram.attitudearray, axis=0)
 
 			# print(datagram)
 
 		if recordidentifier == SWATH_BATHYMETRY:
-			# r.scalefactorsd =  datagram.read(False)
-			datagram.read(True)
+			r.scalefactorsd =  datagram.read(r.scalefactorsd, False)
 			# print ( datagram.from_timestamp(datagram.timestamp), datagram.timestamp, datagram.longitude, datagram.latitude, datagram.heading, datagram.DEPTH_ARRAY[0])
 
 	print("Duration %.3fs" % (time.time() - start_time )) # time the process
@@ -256,32 +273,184 @@ class SWATH_BATHYMETRY_PING :
 		self.fileptr = fileptr						# remember the file pointer so we do not need to pass from the host process
 		self.fileptr.seek(numbytes, 1)				# move the file pointer to the end of the record so we can skip as the default actions
 	
-		self.scalefactorsd 				= {}
-		self.DEPTH_ARRAY 				= []
-		self.ACROSS_TRACK_ARRAY 		= []
-		self.ALONG_TRACK_ARRAY 			= []
-		self.TRAVEL_TIME_ARRAY 			= []
-		self.BEAM_ANGLE_ARRAY 			= []
-		self.MEAN_CAL_AMPLITUDE_ARRAY 	= []
-		self.MEAN_REL_AMPLITUDE_ARRAY 	= []
-		self.QUALITY_FACTOR_ARRAY 		= []
-		self.QUALITY_FLAGS_ARRAY 		= []
-		self.BEAM_FLAGS_ARRAY 			= []
-		self.BEAM_ANGLE_FORWARD_ARRAY 	= []
-		self.VERTICAL_ERROR_ARRAY 		= []
-		self.HORIZONTAL_ERROR_ARRAY 	= []
-		self.SECTOR_NUMBER_ARRAY 		= []
-		# self.INTENSITY_SERIES_ARRAY 	= []
-		self.SNIPPET_SERIES_ARRAY 		= []
-		self.perbeam 					= True
-		self.snippettype 				= SNIPPET_MAX
-		self.numbeams 					= 0
-		self.time 						= 0
-		self.pingnanotime 				= 0
-		self.frequency 					= 0
+		self.scalefactorsd = {}
+		# self.scalefactors = []
+		self.DEPTH_ARRAY = []
+		self.ACROSS_TRACK_ARRAY = []
+		self.ALONG_TRACK_ARRAY = []
+		self.TRAVEL_TIME_ARRAY = []
+		self.BEAM_ANGLE_ARRAY = []
+		self.MEAN_CAL_AMPLITUDE_ARRAY = []
+		self.MEAN_REL_AMPLITUDE_ARRAY = []
+		self.QUALITY_FACTOR_ARRAY = []
+		self.QUALITY_FLAGS_ARRAY = []
+		self.BEAM_FLAGS_ARRAY = []
+		self.BEAM_ANGLE_FORWARD_ARRAY = []
+		self.VERTICAL_ERROR_ARRAY = []
+		self.HORIZONTAL_ERROR_ARRAY = []
+		self.SECTOR_NUMBER_ARRAY = []
+		# self.INTENSITY_SERIES_ARRAY = []
+		self.SNIPPET_SERIES_ARRAY = []
+		self.perbeam = True
+		self.snippettype = SNIPPET_MAX
+		self.numbeams = 0
+		self.time = 0
+		self.pingnanotime = 0
+		self.frequency = 0
 
 	###############################################################################
-	def read(self, headeronly=False):
+	# def readscalefactors(self, headeronly=False):
+	# 	'''read the scale facttors
+	# 	'''
+	# 	# read ping header
+	# 	hdrfmt = '>llll5hLH3h2Hlllh'
+	# 	hdrlen = struct.calcsize(hdrfmt)
+	# 	rec_unpack = struct.Struct(hdrfmt).unpack
+
+	# 	self.fileptr.seek(self.offset + self.hdrlen, 0)   # move the file pointer to the start of the record so we can read from disc			  
+	# 	# self.fileptr.seek(self.offset + self.hdrlen , 0)   # move the file pointer to the start of the record so we can read from disc			  
+	# 	data = self.fileptr.read(hdrlen)
+	# 	s = rec_unpack(data)
+	# 	self.time 			= s[0] 
+	# 	self.pingnanotime 	= s[1] 
+	# 	self.timestamp		= self.time + (self.pingnanotime/1000000000)
+	# 	self.longitude 		= s[2] / 10000000
+	# 	self.latitude		= s[3] / 10000000
+	# 	self.numbeams 		= s[4]
+	# 	self.centrebeam 	= s[5]
+	# 	self.pingflags 		= s[6]
+	# 	self.reserved 		= s[7]
+	# 	self.tidecorrector	= s[8] / 100
+	# 	self.depthcorrector	= s[9] / 100
+	# 	self.heading		= s[10] / 100
+	# 	self.pitch			= s[11] / 100
+	# 	self.roll			= s[12] / 100
+	# 	self.heave			= s[13] / 100
+	# 	self.course			= s[14] / 100
+	# 	self.speed			= s[15] / 100
+	# 	self.height			= s[16] / 100
+	# 	self.separation		= s[17] / 100
+	# 	self.gpstidecorrector	= s[18] / 100
+	# 	self.spare			= s[19]
+
+	# 	# skip the record for performance reasons.  Very handy in some circumstances
+	# 	if headeronly:
+	# 		self.fileptr.seek(self.offset + self.numbytes, 0) #move forwards to the end of the record as we cannot trust the record length from the 2024
+	# 		return
+
+	# 	while (self.fileptr.tell() <= self.offset + self.numbytes): #dont read past the end of the packet length.  This should never happen!
+	# 		fmt = '>l'
+	# 		fmtlen = struct.calcsize(fmt)
+	# 		rec_unpack = struct.Struct(fmt).unpack
+	# 		data = self.fileptr.read(fmtlen)   # read the record from disc
+	# 		s = rec_unpack(data)
+
+	# 		subrecord_id = (s[0] & 0xFF000000) >> 24
+	# 		subrecord_size = s[0] & 0x00FFFFFF
+	# 		# print("id %d size %d" % (subrecord_id, subrecord_size))
+	# 			# if subrecord_id == 21: 
+	# 			# 	self.fileptr.seek(self.offset + self.numbytes, 0) #move forwards to the end of the record as we cannot trust the record length from the 2024
+	# 			# else:
+	# 			# 	self.fileptr.seek(subrecord_size, 1) #move forwards to the end of teh record
+	# 			# continue
+
+	# 		# now decode the subrecord
+	# 		# curr = self.fileptr.tell()
+	# 		if subrecord_id == 100: 
+	# 			sf = self.readscalefactorrecord()
+	# 		return sf
+			
+	###############################################################################
+	# Subrecord Description Subrecord Identifier
+	# DEPTH_ARRAY				1
+	# ACROSS_TRACK_ARRAY    	2
+	# ALONG_TRACK_ARRAY    		3
+	# TRAVEL_TIME_ARRAY    		4
+	# BEAM_ANGLE_ARRAY    		5
+	# MEAN_CAL_AMPLITUDE_ARRAY  6
+	# MEAN_REL_AMPLITUDE_ARRAY  7
+	# ECHO_WIDTH_ARRAY    		8
+	# QUALITY_FACTOR_ARRAY    	9
+	# RECEIVE_HEAVE_ARRAY    	10
+	# DEPTH_ERROR_ARRAY (obsolete)    		11
+	# ACROSS_TRACK_ERROR_ARRAY (obsolete)   12
+	# ALONG_TRACK_ERROR_ARRAY (obsolete)    13
+	# NOMINAL_DEPTH_ARRAY    				14
+	# QUALITY_FLAGS_ARRAY    				15
+	# BEAM_FLAGS_ARRAY    					16
+	# SIGNAL_TO_NOISE_ARRAY    				17
+	# BEAM_ANGLE_FORWARD_ARRAY    			18
+	# VERTICAL_ERROR_ARRAY    				19
+	# HORIZONTAL_ERROR_ARRAY    			20
+	# INTENSITY_SERIES_ARRAY    			21
+	# SECTOR_NUMBER_ARRAY    				22
+	# DETECTION_INFO_ARRAY    				23
+	# INCIDENT_BEAM_ADJ_ARRAY    			24
+	# SYSTEM_CLEANING_ARRAY    				25
+	# DOPPLER_CORRECTION_ARRAY    			26
+	# SONAR_VERT_UNCERTAINTY_ARRAY    		27
+	# SCALE_FACTORS     					100
+	# SEABEAM_SPECIFIC    					102
+	# EM12_SPECIFIC     					103
+	# EM100_SPECIFIC    					104
+	# EM950_SPECIFIC    					105
+	# EM121A_SPECIFIC    					106
+	# EM121_SPECIFIC    					107
+	# SASS_SPECIFIC (To Be Replaced By CMP_SASS)    108
+	# SEAMAP_SPECIFIC                       109
+	# SEABAT_SPECIFIC    					110
+	# EM1000_SPECIFIC    					111
+	# TYPEIII_SEABEAM_SPECIFIC (To Be Replaced By CMP_SASS )    112
+	# SB_AMP_SPECIFIC       				113
+	# SEABAT_II_SPECIFIC    				114
+	# SEABAT_8101_SPECIFIC (obsolete)     	115
+	# SEABEAM_2112_SPECIFIC    				116
+	# ELAC_MKII_SPECIFIC    				117
+	# EM3000_SPECIFIC    					118
+	# EM1002_SPECIFIC 						119
+	# EM300_SPECIFIC    					120
+	# CMP_SASS_SPECIFIC (To replace SASS and TYPEIII_SEABEAM)    121
+	# RESON_8101_SPECIFIC           		122   
+	# RESON_8111_SPECIFIC           		123   
+	# RESON_8124_SPECIFIC           		124   
+	# RESON_8125_SPECIFIC           		125   
+	# RESON_8150_SPECIFIC           		126   
+	# RESON_8160_SPECIFIC           		127   
+	# EM120_SPECIFIC                		128
+	# EM3002_SPECIFIC               		129
+	# EM3000D_SPECIFIC                		130
+	# EM3002D_SPECIFIC                		131
+	# EM121A_SIS_SPECIFIC     				132
+	# EM710_SPECIFIC                 		133
+	# EM302_SPECIFIC                 		134
+	# EM122_SPECIFIC                 		135
+	# GEOSWATH_PLUS_SPECIFIC         		136  
+	# KLEIN_5410_BSS_SPECIFIC         		137
+	# RESON_7125_SPECIFIC     				138
+	# EM2000_SPECIFIC    					139
+	# EM300_RAW_SPECIFIC             		140
+	# EM1002_RAW_SPECIFIC            		141
+	# EM2000_RAW_SPECIFIC           		142
+	# EM3000_RAW_SPECIFIC 					143
+	# EM120_RAW_SPECIFIC             		144
+	# EM3002_RAW_SPECIFIC            		145
+	# EM3000D_RAW_SPECIFIC        			146
+	# EM3002D_RAW_SPECIFIC          		147
+	# EM121A_SIS_RAW_SPECIFIC       		148
+	# EM2040_SPECIFIC     					149
+	# DELTA_T_SPECIFIC     					150
+	# R2SONIC_2022_SPECIFIC      			151
+	# R2SONIC_2024_SPECIFIC     			152             
+	# R2SONIC_2020_SPECIFIC     			153             
+	# SB_ECHOTRAC_SPECIFIC (obsolete)       206
+	# SB_BATHY2000_SPECIFIC (obsolete)      207
+	# SB_MGD77_SPECIFIC (obsolete)          208
+	# SB_BDB_SPECIFIC (obsolete)            209
+	# SB_NOSHDB_SPECIFIC   (obsolete)       210
+	# SB_PDD_SPECIFIC   (obsolete)          211
+	# SB_NAVISOUND_SPECIFIC   (obsolete)    212
+	###############################################################################
+	def read(self, previousscalefactors={}, headeronly=False):
 
 		# read ping header
 		hdrfmt = '>llll5hlH3h2Hlllh'
@@ -291,29 +460,36 @@ class SWATH_BATHYMETRY_PING :
 		self.fileptr.seek(self.offset + self.hdrlen, 0)   # move the file pointer to the start of the record so we can read from disc			  
 		# self.fileptr.seek(self.offset + self.hdrlen , 0)   # move the file pointer to the start of the record so we can read from disc			  
 		data = self.fileptr.read(hdrlen)
-		s 						= rec_unpack(data)
-		self.time 				= s[0] 
-		self.pingnanotime 		= s[1] 
-		self.timestamp			= self.time + (self.pingnanotime/1000000000)
-		self.longitude 			= s[2] / 10000000
-		self.latitude			= s[3] / 10000000
-		self.numbeams 			= s[4]
-		self.centrebeam 		= s[5]
-		self.pingflags 			= s[6]
-		self.reserved 			= s[7]
-		self.tidecorrector		= s[8] / 100
-		self.depthcorrector		= s[9] / 100
-		self.heading			= s[10] / 100
-		self.pitch				= s[11] / 100
-		self.roll				= s[12] / 100
-		self.heave				= s[13] / 100
-		self.course				= s[14] / 100
-		self.speed				= s[15] / 100
-		self.height				= s[16] / 100
-		self.separation			= s[17] / 100
+		s = rec_unpack(data)
+		self.time 			= s[0] 
+		self.pingnanotime 	= s[1] 
+		self.timestamp		= self.time + (self.pingnanotime/1000000000)
+		self.longitude 		= s[2] / 10000000
+		self.latitude		= s[3] / 10000000
+		self.numbeams 		= s[4]
+		self.centrebeam 	= s[5]
+		self.pingflags 		= s[6]
+		self.reserved 		= s[7]
+		self.tidecorrector	= s[8] / 100
+		self.depthcorrector	= s[9] / 100
+		self.heading		= s[10] / 100
+		self.pitch			= s[11] / 100
+		self.roll			= s[12] / 100
+		self.heave			= s[13] / 100
+		self.course			= s[14] / 100
+		self.speed			= s[15] / 100
+		self.height			= s[16] / 100
+		self.separation		= s[17] / 100
 		self.gpstidecorrector	= s[18] / 100
-		self.spare				= s[19]
-		self.subrecords 		= []
+		self.spare			= s[19]
+
+		# SCALE FACTORS ARE NOT ON EVERYPING SO CARRY FORWARDS
+		self.scalefactorsd = previousscalefactors
+
+		# skip the record for performance reasons.  Very handy in some circumstances
+		if headeronly:
+			self.fileptr.seek(self.offset + self.numbytes, 0) #move forwards to the end of the record as we cannot trust the record length from the 2024
+			return
 
 		while (self.fileptr.tell() <= self.offset + self.numbytes): #dont read past the end of the packet length.  This should never happen!
 			subrecfmt = '>l'
@@ -324,25 +500,32 @@ class SWATH_BATHYMETRY_PING :
 
 			subrecord_id = (s[0] & 0xFF000000) >> 24
 			subrecord_size = s[0] & 0x00FFFFFF
+			# print("id %d size %d" % (subrecord_id, subrecord_size))
+				# if subrecord_id == 21: 
+				# 	self.fileptr.seek(self.offset + self.numbytes, 0) #move forwards to the end of the record as we cannot trust the record length from the 2024
+				# else:
+				# 	self.fileptr.seek(subrecord_size, 1) #move forwards to the end of teh record
+				# continue
 
 			# now decode the subrecord
+			# curr = self.fileptr.tell()
 			if subrecord_id == SCALE_FACTORS:
 				self.readscalefactorrecord()
 				continue
 
-			# skip the record for performance reasons and just remember whats in the file.  Very handy in some circumstances
-			if headeronly:
-				self.subrecords.append([subrecord_id, subrecord_size])
-				self.fileptr.seek(subrecord_size, 1) #move forwards to the end of the sub record
-				# self.fileptr.seek(self.offset + self.numbytes, 0) #move forwards to the end of the record as we cannot trust the record length from the 2024
-				continue
+			# 	for s in self.scalefactors:
+			# 		if s.subrecordID == 1:
+			# 			print (s.subrecordID, s.multiplier, s.offset, s.compressionFlag)
+			# 	continue
+			# else:
+				# scale, offset, compressionFlag, datatype = self.getscalefactor(subrecord_id, subrecord_size / int(self.numbeams))
 
 			if subrecord_id == 0:
-				self.fileptr.seek(subrecord_size, 1) #move forwards to the end of the record
+				self.fileptr.seek(subrecord_size, 1) #move forwards to the end of teh record
 				continue
 
 			if subrecord_id > len(self.scalefactorsd):
-				self.fileptr.seek(subrecord_size, 1) #move forwards to the end of the record
+				self.fileptr.seek(subrecord_size, 1) #move forwards to the end of teh record
 				continue
 
 			sf = self.scalefactorsd[subrecord_id]
@@ -408,8 +591,7 @@ class SWATH_BATHYMETRY_PING :
 				self.fileptr.seek(subrecord_size, 1) #move forwards to the end of teh record
 			
 		self.fileptr.seek(self.offset + self.numbytes, 0) #move forwards to the end of the record as we cannot trust the record length from the 2024
-
-		# we need to return the scalefactors as they are not in every ping header.  they are only set if changed.  Grr
+		
 		return self.scalefactorsd
 
 	###############################################################################
@@ -419,9 +601,45 @@ class SWATH_BATHYMETRY_PING :
 		'''
 		return pprint.pformat(vars(self))
 	###############################################################################
+	def clippolar(self, leftclipdegrees, rightclipdegrees):
+		'''sets the processing flags to rejected if the beam angle is beyond the clip parameters'''
+		if self.numbeams == 0:
+			return
+		if len(self.QUALITY_FACTOR_ARRAY) != len(self.TRAVEL_TIME_ARRAY):
+			return
+		for i, s in enumerate(self.BEAM_ANGLE_ARRAY):
+			if (s <= leftclipdegrees) or (s >= rightclipdegrees):
+				self.QUALITY_FACTOR_ARRAY[i] += REJECT_CLIP
+				# self.MEAN_REL_AMPLITUDE_ARRAY[i] = 0
+				# self.ACROSS_TRACK_ARRAY[i] = 0
+		return
+	###############################################################################
+	def cliptwtt(self, minimumtraveltime=0.0):
+		'''sets the processing flags to rejected if the two way travel time is less than the clip parameters'''
+		if self.numbeams == 0:
+			return
+		if len(self.QUALITY_FACTOR_ARRAY) != len(self.TRAVEL_TIME_ARRAY):
+			return
+		for i, s in enumerate(self.TRAVEL_TIME_ARRAY):
+			if (s <= minimumtraveltime):
+				self.QUALITY_FACTOR_ARRAY[i] += REJECT_RANGE
+		return
+
+	###############################################################################
+	def clipintensity(self, minimumintenisty=0.0):
+		'''sets the processing flags to rejected if the two way travel time is less than the clip parameters'''
+		if self.numbeams == 0:
+			return
+		if len(self.QUALITY_FACTOR_ARRAY) != len(self.TRAVEL_TIME_ARRAY):
+			return
+		for i, s in enumerate(self.MEAN_REL_AMPLITUDE_ARRAY):
+			if (s <= minimumintenisty):
+				self.QUALITY_FACTOR_ARRAY[i] += REJECT_INTENSITY
+		return
+
+	###############################################################################
 	def getdatatype(self, ID, bytes_per_value):
-		'''the scale factors array determines the type of data and from this we need to determine the struct code for numpy / struct to use for reading from disc
-		'''
+
 		datatype = -999
 		if ID == DEPTH_ARRAY:			
 			if bytes_per_value == 2:
@@ -499,6 +717,31 @@ class SWATH_BATHYMETRY_PING :
 		return datatype
 
 	###############################################################################
+	# def getscalefactor(self, ID, bytes_per_value):
+	# 	for s in self.scalefactors:
+	# 		if s.subrecordID == ID:			# DEPTH_ARRAY array
+	# 			if bytes_per_value == 1:
+	# 				datatype = 'B' 			#unsigned values
+	# 			elif bytes_per_value == 2:
+	# 				datatype = 'H'			#unsigned values
+	# 				if ID == 2:				#ACROSS_TRACK_ARRAY array
+	# 					datatype = 'h'		#unsigned values
+	# 				if ID == 3:				#ACROSS_TRACK_ARRAY array
+	# 					datatype = 'h'		#unsigned values
+	# 				if ID == 5:				#beam angle array
+	# 					datatype = 'h'		#unsigned values
+	# 			elif bytes_per_value == 4:
+	# 				datatype = 'L'			#unsigned values
+	# 				if ID == 2:				#ACROSS_TRACK_ARRAY array
+	# 					datatype = 'l'		#unsigned values
+	# 				if ID == 5:				#beam angle array
+	# 					datatype = 'l'		#unsigned values
+	# 			else:
+	# 				datatype = 'L'			#unsigned values not sure about this one.  needs test data
+	# 			return s.multiplier, s.offset, s.compressionFlag, datatype
+		
+	# 	return 1,0,0, 'h'
+	###############################################################################
 	def readscalefactorrecord(self):
 		# /* First four byte integer contains the number of scale factors */
 		# now read all scale factors
@@ -514,6 +757,7 @@ class SWATH_BATHYMETRY_PING :
 		scalelen = struct.calcsize(scalefmt)
 		rec_unpack = struct.Struct(scalefmt).unpack
 
+		# self.scalefactorsd = {}
 		for i in range(self.numscalefactors):
 			data = self.fileptr.read(scalelen)
 			s = rec_unpack(data)
@@ -524,8 +768,61 @@ class SWATH_BATHYMETRY_PING :
 			sf.multiplier = s[1]
 			sf.offset = s[2]
 			sf.datatype = sf.compressionFlag
+
+			# ALONG_ACROSS_TRACK_ARRAY    				=	2
+			# TRACK_ARRAY    				=	3
+			# TRAVEL_TIME_ARRAY    				=	4
+			# BEAM_ANGLE_ARRAY    				=	5
+			# MEAN_CAL_AMPLITUDE_ARRAY  			=	6
+			# MEAN_REL_AMPLITUDE_ARRAY  			=	7
+			# ECHO_WIDTH_ARRAY    				=	8
+			# QUALITY_FACTOR_ARRAY    			=	9
+			# RECEIVE_HEAVE_ARRAY    				=	10
+			# DEPTH_ERROR_ARRAY			    	=	11
+			# ACROSS_TRACK_ERROR_ARRAY 			=  	12
+			# ALONG_TRACK_ERROR_ARRAY				=	13
+			# NOMINAL_DEPTH_ARRAY    				=	14
+			# QUALITY_FLAGS_ARRAY    				=	15
+			# BEAM_FLAGS_ARRAY    				=	16
+			# SIGNAL_TO_NOISE_ARRAY    			=	17
+			# BEAM_ANGLE_FORWARD_ARRAY    		=	18
+			# VERTICAL_ERROR_ARRAY    			=	19
+
+			# if sf.subrecordID == DEPTH_ARRAY:			# DEPTH_ARRAY array
+			# 	if bytes_per_value == 1:
+			# 		sf.datatype = 'B' 			#unsigned values
+			# 	elif bytes_per_value == 2:
+			# 		sf.datatype = 'H'			#unsigned values
+			# 		if ID == 2:				#ACROSS_TRACK_ARRAY array
+			# 			sf.datatype = 'h'		#unsigned values
+			# 		if ID == 3:				#ACROSS_TRACK_ARRAY array
+			# 			sf.datatype = 'h'		#unsigned values
+			# 		if ID == 5:				#beam angle array
+			# 			sf.datatype = 'h'		#unsigned values
+			# 	elif bytes_per_value == 4:
+			# 		sf.datatype = 'L'			#unsigned values
+			# 		if ID == 2:				#ACROSS_TRACK_ARRAY array
+			# 			sf.datatype = 'l'		#unsigned values
+			# 		if ID == 5:				#beam angle array
+			# 			sf.datatype = 'l'		#unsigned values
+			# 	else:
+			# 		datatype = 'L'			#unsigned values not sure about this one.  needs test data
+
+			# print (sf.subrecordID, sf.compressionFlag, sf.multiplier, sf.offset)
 			self.scalefactorsd[sf.subrecordID] = sf
-		return self.scalefactorsd
+
+		# self.scalefactors=[]
+		# for i in range(self.numscalefactors):
+		# 	data = self.fileptr.read(scalelen)
+		# 	s = rec_unpack(data)
+		# 	sf = SCALEFACTOR()
+		# 	sf.subrecordID = (s[0] & 0xFF000000) >> 24;
+		# 	sf.compressionFlag = (s[0] & 0x00FF0000) >> 16;
+		# 	sf.multiplier = s[1]
+		# 	sf.offset = s[2]
+		# 	self.scalefactors.append(sf)
+		# 	# print (sf.subrecordID, sf.compressionFlag, sf.multiplier, sf.offset)
+		# return self.scalefactors
 
 	###############################################################################
 	def readintensityarray(self, snippets, scale, offset, datatype, snippettype):
@@ -638,6 +935,97 @@ class SWATH_BATHYMETRY_PING :
 				
 				samplearray[i] = adjusted
 		return samplearray
+
+	###############################################################################
+	def backscatteradjustment(self, S1_angle, S1_twtt, S1_range, S1_Magnitude, H0_TxPower, H0_SoundSpeed, H0_RxAbsorption, H0_TxBeamWidthVert, H0_TxBeamWidthHoriz, H0_TxPulseWidth, H0_RxSpreading, H0_RxGain, H0_VTX_Offset):
+		'''R2Sonic backscatter correction algorithm from Norm Camblell at CSIRO.  This is a port from F77 fortran code, and has been tested and confirmed to provide identical results'''
+		# the following code uses the names for the various packets as listed in the R2Sonic SONIC 2024 Operation Manual v6.0
+		# so names beginning with
+		# H0_   denote parameters from the BATHY (BTH) and Snippet (SNI) packets from section H0
+		# R0_   denote parameters from the BATHY (BTH) packets from section R0
+		# S1_   denote parameters from the Snippet (SNI) packets from section S1
+		# names beginning with
+		# z_	denote values derived from the packet parameters
+		# the range, z_range_m, can be found from the two-way travel time (and scaling factor), and the sound speed, as follows:
+
+		one_rad = 57.29577951308232
+		S1_angle_rad = S1_angle / one_rad
+		z_one_way_travel_secs = S1_twtt / 2.0
+		z_range_m = z_one_way_travel_secs * H0_SoundSpeed
+
+		# there is a range of zero, so this is an invalid beam, so quit
+		if z_range_m == 0:
+			return 0
+
+		###### TRANSMISSION LOSS CORRECTION ##########################################
+		# according to Lurton, Augustin and Le Bouffant (Femme 2011), the basic Sonar equation is
+		# received_level = source_level - 2 * transmission_loss + target_strength + receiver_gain
+		# note that this last term does not always appear explicitly in the sonar equation
+		# more specifically:
+		# transmission_loss = H0_RxAbsorption * range_m + 40 log10 ( range_m )
+		# target_strength = backscatter_dB_m + 10 log10 ( z_area_of_insonification )
+		# receiver_gain = TVG + H0_RxGain
+		# the components of the Sonar equation can be calculated as follows:
+		# u16 S1_Magnitude[S1_Samples]; // [micropascals] = S1_Magnitude[n]
+
+		z_received_level = 20.0 * math.log10 ( S1_Magnitude )
+		z_source_level = H0_TxPower # [dB re 1 uPa at 1 meter]
+		z_transmission_loss_t1 = 2.0 * H0_RxAbsorption * z_range_m / 1000.0  # [dB per kilometer]
+		z_transmission_loss_t2 = 40.0 * math.log10(z_range_m)
+		z_transmission_loss = z_transmission_loss_t1 + z_transmission_loss_t2
+	
+		###### INSONIFICATION AREA CORRECTION Checked 19 August 2017 p.kennedy@fugr.com ##########################################	
+		# for oblique angles
+			# area_of_insonification = along_track_beam_width * range * sound_speed * pulse_width / 2 sin ( incidence_angle)
+		# for normal incidence
+			# area_of_insonification = along_track_beam_width * across_track_beam_width * range ** 2
+
+		sin_S1_angle = math.sin ( abs ( S1_angle_rad ) )
+
+		# from Hammerstad 00 EM Technical Note Backscattering and Seabed Image Reflectivity.pdf
+		# A = ψTψr*R^2 around normal incidence
+		z_area_of_insonification_nml = H0_TxBeamWidthVert * H0_TxBeamWidthHoriz * z_range_m **2 
+
+		# A = ½cτ ψTR/sinφ elsewhere
+		if ( abs ( S1_angle ) >= 0.001 ):
+			z_area_of_insonification_obl = 0.5 * H0_SoundSpeed * H0_TxPulseWidth * H0_TxBeamWidthVert * z_range_m / sin_S1_angle
+
+		if ( abs ( S1_angle ) < 25. ):
+			z_area_of_insonification = z_area_of_insonification_nml
+		else:
+			z_area_of_insonification = z_area_of_insonification_obl
+
+		if ( abs ( S1_angle ) < 0.001 ):
+			z_area_of_insonification = z_area_of_insonification_nml
+		elif ( z_area_of_insonification_nml < z_area_of_insonification_obl ):
+			z_area_of_insonification = z_area_of_insonification_nml
+		else:
+			z_area_of_insonification = z_area_of_insonification_obl
+
+		###### TIME VARIED GAIN CORRECTION  19 August 2017 p.kennedy@fugr.com ##########################################
+		# note that the first equation refers to the along-track beam width
+		# the R2Sonic Operation Manual refers on p21 to the Beamwidth - Along Track -- moreover, for the 2024, the Beamwidth Along Track is twice
+		# the Beamwidth Across Track
+
+		# according to the R2Sonic Operation Manual in Section 5.6.3 on p88, the TVG equation is:
+		# TVG = 2*R* α/1000 + Sp*log(R) + G
+		# where:
+		# α = Absorption Loss db/km			(H0_RxAbsorption)
+		# R = Range in metres				(range_m)
+		# Sp = Spreading loss coefficient	(H0_RxSpreading)
+		# G = Gain from Sonar Control setting (H0_RxGain)
+
+		TVG_1 = 2.0 * z_range_m * H0_RxAbsorption / 1000.
+		TVG_2 = H0_RxSpreading * math.log10 ( z_range_m )		
+		TVG = TVG_1 + TVG_2 + H0_RxGain
+
+		# as per email from Beaudoin, clip the TVG between 4 and 83 dB
+		TVG = min(max(4, TVG ), 83)
+
+		###### NOW COMPUTE THE CORRECTED BACKSCATTER ##########################################
+		backscatter_dB_m = z_received_level - z_source_level + z_transmission_loss - (10.0 * math.log10 ( z_area_of_insonification )) - TVG - H0_VTX_Offset + 100.0
+
+		return backscatter_dB_m
 
 	###############################################################################
 	def decodeR2SonicImagerySpecific(self):
@@ -919,6 +1307,7 @@ class CSOUND_VELOCITY_PROFILE:
 		'''
 		return pprint.pformat(vars(self))
 
+
 ###############################################################################
 class CPROCESSINGPARAMETERS:
 	def __init__(self, fileptr, numbytes, recordidentifier, hdrlen):
@@ -956,10 +1345,12 @@ class CPROCESSINGPARAMETERS:
 		self.machinetext = self.fileptr.read(self.namesize+2).decode('utf-8').rstrip('\x00')
 		
 		rec_fmt = '>h'
+		# data = self.fileptr.read(rec_len)
 		data = self.fileptr.read(2)	
 		self.operatorsize = struct.Struct('>h').unpack(data)[0]
 		self.operatortext = self.fileptr.read(self.namesize+2).decode('utf-8').rstrip('\x00')
 
+		
 		self.fileptr.seek(self.offset + self.numbytes + self.hdrlen, 0)	# move the file pointer to the end of the record			  
 
 		return
@@ -1025,16 +1416,16 @@ class CSWATH_BATHY_SUMMARY:
 		bytesRead = rec_len
 		s = rec_unpack(data)
 		
-		self.BEGIN_TIME 		= s[0] #Time of earliest record in file
-		self.BEGIN_TIME_NANO 	= s[1]
-		self.END_TIME 			= s[2] # Time of latest record in file
-		self.END_TIME_NANO 		= s[3] # Time of latest record in file
-		self.MIN_LATITUDE 		= s[4] / 10000000 # Southernmost extent of data records
-		self.MIN_LONGITUDE 		= s[5] / 10000000 # Westernmost extent of data records
-		self.MAX_LATITUDE 		= s[6] / 10000000 #Northernmost extent of data records
-		self.MAX_LONGITUDE 		= s[7] / 10000000 # Easternmost extent of data records
-		self.MIN_DEPTH 			= s[8] / 100 # Least depth in data records
-		self.MAX_DEPTH 			= s[9] / 100 # Greatest depth in data records
+		self.BEGIN_TIME = s[0] #Time of earliest record in file
+		self.BEGIN_TIME_NANO = s[1]
+		self.END_TIME = s[2] # Time of latest record in file
+		self.END_TIME_NANO = s[3] # Time of latest record in file
+		self.MIN_LATITUDE = s[4] / 10000000 # Southernmost extent of data records
+		self.MIN_LONGITUDE = s[5] / 10000000 # Westernmost extent of data records
+		self.MAX_LATITUDE = s[6] / 10000000 #Northernmost extent of data records
+		self.MAX_LONGITUDE = s[7] / 10000000 # Easternmost extent of data records
+		self.MIN_DEPTH = s[8] / 100 # Least depth in data records
+		self.MAX_DEPTH = s[9] / 100 # Greatest depth in data records
 
 		return
 
@@ -1047,7 +1438,7 @@ class CSWATH_BATHY_SUMMARY:
 
 ###############################################################################
 class GSFREADER:
-	def __init__(self, filename):
+	def __init__(self, filename, loadscalefactors=False):
 		'''
 		class to read generic sensor format files.
 		'''
@@ -1056,117 +1447,16 @@ class GSFREADER:
 		self.fileName = filename
 		self.fileSize = os.path.getsize(filename)
 		self.fileptr 		= open(filename, 'rb')
+
+		# f = open(filename, 'r+b')		
+		# self.f = f
+		# self.fileptr = mmap.mmap(f.fileno(), 0)
 		self.hdrfmt = ">LL"
 		self.hdrlen = struct.calcsize(self.hdrfmt)
 		self.scalefactorsd = {}
+		# if loadscalefactors:
+		# self.scalefactors = self.loadscalefactors()
 		self.attitudedata = np.empty((0), int)
-
-		self.recordnames = []
-		self.recordnames.append("UNKNOWN")
-		self.recordnames.append("HEADER")
-		self.recordnames.append("SWATH_BATHYMETRY")
-		self.recordnames.append("SOUND_VELOCITY_PROFILE")				
-		self.recordnames.append("PROCESSING_PARAMETERS")
-		self.recordnames.append("SENSOR_PARAMETERS")
-		self.recordnames.append("COMMENT")
-		self.recordnames.append("HISTORY")
-		self.recordnames.append("NAVIGATION_ERROR")
-		self.recordnames.append("SWATH_BATHY_SUMMARY")
-		self.recordnames.append("SINGLE_BEAM_SOUNDING")
-		self.recordnames.append("HV_NAVIGATION_ERROR")
-		self.recordnames.append("ATTITUDE")
-
-		# Subrecord Description Subrecord Identifier
-		self.subrecordnames = {}
-		self.subrecordnames[0] = "UNKNOWN"
-		self.subrecordnames[1] = "DEPTH_ARRAY"
-		self.subrecordnames[2] = "ACROSS_TRACK_ARRAY"
-		self.subrecordnames[3] = "ALONG_TRACK_ARRAY"
-		self.subrecordnames[4] = "TRAVEL_TIME_ARRAY"
-		self.subrecordnames[5] = "BEAM_ANGLE_ARRAY"
-		self.subrecordnames[6] = "MEAN_CAL_AMPLITUDE_ARRAY"
-		self.subrecordnames[7] = "MEAN_REL_AMPLITUDE_ARRAY"
-		self.subrecordnames[8] = "ECHO_WIDTH_ARRAY"
-		self.subrecordnames[9] = "QUALITY_FACTOR_ARRAY"
-		self.subrecordnames[10] = "RECEIVE_HEAVE_ARRAY"
-		self.subrecordnames[11] = "DEPTH_ERROR_ARRAY"
-		self.subrecordnames[12] = "ACROSS_TRACK_ERROR_ARRAY"
-		self.subrecordnames[13] = "ALONG_TRACK_ERROR_ARRAY"
-		self.subrecordnames[14] = "NOMINAL_DEPTH_ARRAY"
-		self.subrecordnames[15] = "QUALITY_FLAGS_ARRAY"
-		self.subrecordnames[16] = "BEAM_FLAGS_ARRAY"
-		self.subrecordnames[17] = "SIGNAL_TO_NOISE_ARRAY"
-		self.subrecordnames[18] = "BEAM_ANGLE_FORWARD_ARRAY"
-		self.subrecordnames[19] = "VERTICAL_ERROR_ARRAY"
-		self.subrecordnames[20] = "HORIZONTAL_ERROR_ARRAY"
-		self.subrecordnames[21] = "INTENSITY_SERIES_ARRAY"
-		self.subrecordnames[22] = "SECTOR_NUMBER_ARRAY"
-		self.subrecordnames[23] = "DETECTION_INFO_ARRAY"
-		self.subrecordnames[24] = "INCIDENT_BEAM_ADJ_ARRAY"
-		self.subrecordnames[25] = "SYSTEM_CLEANING_ARRAY"
-		self.subrecordnames[26] = "DOPPLER_CORRECTION_ARRAY"
-		self.subrecordnames[27] = "SONAR_VERT_UNCERTAINTY_ARRAY"
-		self.subrecordnames[100] = "SCALE_FACTORS"
-		self.subrecordnames[102] = "SEABEAM_SPECIFIC"
-		self.subrecordnames[103] = "EM12_SPECIFIC"
-		self.subrecordnames[104] = "EM100_SPECIFIC"
-		self.subrecordnames[105] = "EM950_SPECIFIC"
-		self.subrecordnames[106] = "EM121A_SPECIFIC"
-		self.subrecordnames[107] = "EM121_SPECIFIC"
-		self.subrecordnames[108] = "SASS_SPECIFIC (To Be Replaced By CMP_SASS)"
-		self.subrecordnames[109] = "SEAMAP_SPECIFIC"
-		self.subrecordnames[110] = "SEABAT_SPECIFIC"
-		self.subrecordnames[111] = "EM1000_SPECIFIC"
-		self.subrecordnames[112] = "TYPEIII_SEABEAM_SPECIFIC (To Be Replaced By CMP_SASS )"
-		self.subrecordnames[113] = "SB_AMP_SPECIFIC"
-		self.subrecordnames[114] = "SEABAT_II_SPECIFIC"
-		self.subrecordnames[115] = "SEABAT_8101_SPECIFIC (obsolete)"
-		self.subrecordnames[116] = "SEABEAM_2112_SPECIFIC"
-		self.subrecordnames[117] = "ELAC_MKII_SPECIFIC"
-		self.subrecordnames[118] = "EM3000_SPECIFIC"
-		self.subrecordnames[119] = "EM1002_SPECIFIC"
-		self.subrecordnames[120] = "EM300_SPECIFIC"
-		self.subrecordnames[121] = "CMP_SASS_SPECIFIC (To replace SASS and TYPEIII_SEABEAM)"
-		self.subrecordnames[122] = "RESON_8101_SPECIFIC"
-		self.subrecordnames[123] = "RESON_8111_SPECIFIC"
-		self.subrecordnames[124] = "RESON_8124_SPECIFIC"
-		self.subrecordnames[125] = "RESON_8125_SPECIFIC"
-		self.subrecordnames[126] = "RESON_8150_SPECIFIC"
-		self.subrecordnames[127] = "RESON_8160_SPECIFIC"
-		self.subrecordnames[128] = "EM120_SPECIFIC"
-		self.subrecordnames[129] = "EM3002_SPECIFIC"
-		self.subrecordnames[130] = "EM3000D_SPECIFIC"
-		self.subrecordnames[131] = "EM3002D_SPECIFIC"
-		self.subrecordnames[132] = "EM121A_SIS_SPECIFIC"
-		self.subrecordnames[133] = "EM710_SPECIFIC"
-		self.subrecordnames[134] = "EM302_SPECIFIC"
-		self.subrecordnames[135] = "EM122_SPECIFIC"
-		self.subrecordnames[136] = "GEOSWATH_PLUS_SPECIFIC"
-		self.subrecordnames[137] = "KLEIN_5410_BSS_SPECIFIC"
-		self.subrecordnames[138] = "RESON_7125_SPECIFIC"
-		self.subrecordnames[139] = "EM2000_SPECIFIC"
-		self.subrecordnames[140] = "EM300_RAW_SPECIFIC"
-		self.subrecordnames[141] = "EM1002_RAW_SPECIFIC"
-		self.subrecordnames[142] = "EM2000_RAW_SPECIFIC"
-		self.subrecordnames[143] = "EM3000_RAW_SPECIFIC"
-		self.subrecordnames[144] = "EM120_RAW_SPECIFIC"
-		self.subrecordnames[145] = "EM3002_RAW_SPECIFIC"
-		self.subrecordnames[146] = "EM3000D_RAW_SPECIFIC"
-		self.subrecordnames[147] = "EM3002D_RAW_SPECIFIC"
-		self.subrecordnames[147] = "EM121A_SIS_RAW_SPECIFIC"
-		self.subrecordnames[149] = "EM2040_SPECIFIC"
-		self.subrecordnames[150] = "DELTA_T_SPECIFIC"
-		self.subrecordnames[151] = "R2SONIC_2022_SPECIFIC"
-		self.subrecordnames[152] = "R2SONIC_2024_SPECIFIC"
-		self.subrecordnames[153] = "R2SONIC_2020_SPECIFIC"
-		self.subrecordnames[206] = "SB_ECHOTRAC_SPECIFIC (obsolete)"
-		self.subrecordnames[207] = "SB_BATHY2000_SPECIFIC (obsolete)"
-		self.subrecordnames[208] = "SB_MGD77_SPECIFIC (obsolete)"
-		self.subrecordnames[209] = "SB_BDB_SPECIFIC (obsolete)"
-		self.subrecordnames[210] = "SB_NOSHDB_SPECIFIC   (obsolete)"
-		self.subrecordnames[211] = "SB_PDD_SPECIFIC   (obsolete)"
-		self.subrecordnames[212] = "SB_NAVISOUND_SPECIFIC   (obsolete)"
-
 
 	###########################################################################
 	def moreData(self):
@@ -1200,7 +1490,7 @@ class GSFREADER:
 		return pprint.pformat(vars(self))
 
 	###########################################################################
-	def readdatagramBytes(self, offset, byteCount):
+	def readDatagramBytes(self, offset, byteCount):
 		'''read the entire raw bytes for the datagram without changing the file pointer.  this is used for file conditioning'''
 		curr = self.fileptr.tell()
 		self.fileptr.seek(offset, 0)   # move the file pointer to the start of the record so we can read from disc			  
@@ -1208,6 +1498,23 @@ class GSFREADER:
 		self.fileptr.seek(curr, 0)
 		return data
 
+	###########################################################################
+	# def loadscalefactors(self):
+	# 	'''
+	# 	rewind, load the scale factors array and rewind to the original position.  We can then use these scalefactors for every ping
+	# 	'''
+	# 	curr = self.fileptr.tell()
+	# 	self.rewind()
+
+	# 	while self.moreData():
+	# 		numberofbytes, recordidentifier, datagram = self.readDatagram()
+	# 		if recordidentifier == SWATH_BATHYMETRY:
+	# 			sf = datagram.readscalefactors()
+	# 			self.fileptr.seek(curr, 0)
+	# 			return sf
+	# 	self.fileptr.seek(curr, 0)
+	# 	return None
+	
 	###########################################################################
 	def loadattitude(self):
 		'''
@@ -1223,7 +1530,7 @@ class GSFREADER:
 		self.rewind()
 
 		while self.moreData():
-			numberofbytes, recordidentifier, datagram = self.readdatagram()
+			numberofbytes, recordidentifier, datagram = self.readDatagram()
 			if recordidentifier == 	ATTITUDE:
 				datagram.read()
 				ts			= np.append(ts, datagram.ts)
@@ -1246,10 +1553,16 @@ class GSFREADER:
 		curr = self.fileptr.tell()
 		self.rewind()
 
+
 		while self.moreData():
-			numberofbytes, recordidentifier, datagram = self.readdatagram()
+			numberofbytes, recordidentifier, datagram = self.readDatagram()
 			if recordidentifier == SWATH_BATHYMETRY:
-				datagram.read(True)
+				datagram.read({}, True)
+
+				if isBitSet(datagram.pingflags, 0) == True:
+				# if datagram.pingflags > 0:
+					continue #skip rejected records
+
 				if previoustimestamp == 0:
 					# ensure the first record is not seen as a jump
 					previoustimestamp = datagram.timestamp
@@ -1271,7 +1584,7 @@ class GSFREADER:
 		self.rewind()
 
 		while self.moreData():
-			numberofbytes, recordidentifier, datagram = self.readdatagram()
+			numberofbytes, recordidentifier, datagram = self.readDatagram()
 			if recordidentifier == SWATH_BATHYMETRY:
 				numpings += 1
 
@@ -1279,7 +1592,7 @@ class GSFREADER:
 		return numpings
 		
 	###########################################################################
-	def readdatagram(self):
+	def readDatagram(self):
 		# read the datagram header.  This permits us to skip datagrams we do not support
 		numberofbytes, recordidentifier, haschecksum, hdrlen = self.sniffDatagramHeader()
 		# print ("ID %d Bytes %d ftell %d" % (recordidentifier, numberofbytes, self.fileptr.tell()))
@@ -1302,12 +1615,12 @@ class GSFREADER:
 
 		if recordidentifier == SWATH_BATHYMETRY:
 			dg = SWATH_BATHYMETRY_PING(self.fileptr, numberofbytes, recordidentifier, hdrlen)
-			# we need to set the scale factors here as they are not inside each and every bathymetry record.  Grr
-			dg.scalefactorsd = self.scalefactorsd
+			# dg.scalefactors = self.scalefactors
 			return numberofbytes, recordidentifier, dg 
 
 		elif recordidentifier == SWATH_BATHY_SUMMARY:
 			dg = CSWATH_BATHY_SUMMARY(self.fileptr, numberofbytes, recordidentifier, hdrlen)
+			# dg.scalefactors = self.scalefactors
 			return numberofbytes, recordidentifier, dg 
 
 		if recordidentifier == ATTITUDE:
@@ -1337,21 +1650,72 @@ class GSFREADER:
 			return (0, 0, False, 0)
 
 		# version header format
-		data 				= self.fileptr.read(self.hdrlen)
-		s 					= struct.unpack(self.hdrfmt, data)
-		sizeofdata 			= s[0]
-		recordidentifier 	= s[1]
-		haschecksum 		= isBitSet(recordidentifier, 31)
+		data = self.fileptr.read(self.hdrlen)
+		s = struct.unpack(self.hdrfmt, data)
+		sizeofdata = s[0]
+		recordidentifier = s[1]
+		# haschecksum = recordidentifier & 0x80000000
+
+		haschecksum = isBitSet(recordidentifier, 31)
+		# temp = recordidentifier & 0x7FC00000
+		# reserved = (temp >> 22)
+
+		# recordidentifier = (recordidentifier & 0x003FFFFF)
+
+		# bit=int(1)
+		# num=recordidentifier>>(bit-1)
+		# if((num&1)!=0):
+		# 	print("{} is set".format(bit))
+		# 	haschecksum = true
+		# else:
+		# 	print("{} is reset".format(bit))
+		# 	haschecksum = false
+
+		# if haschecksum == true:
+		# 	# read the checksum of 4 bytes if required
+		# 	chksum = self.fileptr.read(4)
+		# 	return (sizeofdata + self.hdrlen + 4, recordidentifier, haschecksum, self.hdrlen + 4)
 		
 		# now reset file pointer to the start of the record
 		self.fileptr.seek(curr, 0)
 		return (sizeofdata + self.hdrlen, recordidentifier, haschecksum, self.hdrlen )
+		
+		# if haschecksum == true:
+		# 	return (sizeofdata + 4, recordidentifier, haschecksum, self.hdrlen + 4)
+		# 	# return (sizeofdata + self.hdrlen + 4, recordidentifier, haschecksum, self.hdrlen + 4)
+		# else:
+		# 	return (sizeofdata, recordidentifier, haschecksum, self.hdrlen )
+		# 	# return (sizeofdata + self.hdrlen, recordidentifier, haschecksum, self.hdrlen )
+
 
 ###########################################################################
 def isBitSet(int_type, offset):
 	'''testBit() returns a nonzero result, 2**offset, if the bit at 'offset' is one.'''
 	mask = 1 << offset
 	return (int_type & (1 << offset)) != 0
+
+###############################################################################
+def createOutputFileName(path):
+	'''Create a valid output filename. if the name of the file already exists the file name is auto-incremented.'''
+	path = os.path.expanduser(path)
+
+	if not os.path.exists(os.path.dirname(path)):
+		os.makedirs(os.path.dirname(path))
+
+	if not os.path.exists(path):
+		return path
+
+	root, ext = os.path.splitext(os.path.expanduser(path))
+	dir = os.path.dirname(root)
+	fname = os.path.basename(root)
+	candidate = fname+ext
+	index = 1
+	ls = set(os.listdir(dir))
+	while candidate in ls:
+			candidate = "{}_{}{}".format(fname,index,ext)
+			index += 1
+
+	return os.path.join(dir, candidate)
 
 ###############################################################################
 class cBeam:
@@ -1367,133 +1731,150 @@ class cBeam:
 		self.sampleMax			  = -999		 
 		self.samples				= []
 
-###################################################################################
-######HEADERS######################################################################
-# Record Decriptions (See page 82)
-HEADER 									= 1
-#/* The high order 4 bits are used to define the field size for this array */
-GSF_FIELD_SIZE_DEFAULT  = 0x00  #/* Default values for field size are used used for all beam arrays */
-GSF_FIELD_SIZE_ONE	  = 0x10  #/* value saved as a one byte value after applying scale and offset */
-GSF_FIELD_SIZE_TWO	  = 0x20  #/* value saved as a two byte value after applying scale and offset */
-GSF_FIELD_SIZE_FOUR	 = 0x40  #/* value saved as a four byte value after applying scale and offset */
-GSF_MAX_PING_ARRAY_SUBRECORDS = 26
-
-SWATH_BATHYMETRY						= 2
-SOUND_VELOCITY_PROFILE					= 3
-PROCESSING_PARAMETERS					= 4
-SENSOR_PARAMETERS						= 5
-COMMENT									= 6
-HISTORY									= 7
-NAVIGATION_ERROR						= 8
-SWATH_BATHY_SUMMARY						= 9
-SINGLE_BEAM_SOUNDING					= 10
-HV_NAVIGATION_ERROR						= 11
-ATTITUDE								= 12
-
-SNIPPET_NONE 							= 0  # extract the mean value from the snippet array
-SNIPPET_MEAN 							= 1  # extract the mean value from the snippet array
-SNIPPET_MAX 							= 2  # extract the maximum value from the snippet array
-SNIPPET_DETECT 							= 3	 # extract the bottom detect snippet value from the snippet array
-SNIPPET_MEAN5DB 						= 4  # extract the mean of all snippets within 5dB of the mean
-
-# the various frequencies we support in the R2Sonic multispectral files
-ARCIdx = {0: 0, 100000: 1, 200000: 2, 400000: 3}
-
-# the rejection flags used by this software
-REJECT_CLIP = -1
-REJECT_RANGE= -2
-REJECT_INTENSITY= -4
-
-
-# Subrecord Description Subrecord Identifier
-DEPTH_ARRAY							= 1
-ACROSS_TRACK_ARRAY					= 2
-ALONG_TRACK_ARRAY					= 3
-TRAVEL_TIME_ARRAY					= 4
-BEAM_ANGLE_ARRAY					= 5
-MEAN_CAL_AMPLITUDE_ARRAY			= 6
-MEAN_REL_AMPLITUDE_ARRAY			= 7
-ECHO_WIDTH_ARRAY					= 8
-QUALITY_FACTOR_ARRAY				= 9
-RECEIVE_HEAVE_ARRAY					= 10
-DEPTH_ERROR_ARRAY					= 11
-ACROSS_TRACK_ERROR_ARRAY			= 12
-ALONG_TRACK_ERROR_ARRAY				= 13
-NOMINAL_DEPTH_ARRAY					= 14
-QUALITY_FLAGS_ARRAY					= 15
-BEAM_FLAGS_ARRAY					= 16
-SIGNAL_TO_NOISE_ARRAY				= 17
-BEAM_ANGLE_FORWARD_ARRAY			= 18
-VERTICAL_ERROR_ARRAY				= 19
-HORIZONTAL_ERROR_ARRAY				= 20
-INTENSITY_SERIES_ARRAY				= 21
-SECTOR_NUMBER_ARRAY					= 22
-DETECTION_INFO_ARRAY				= 23
-INCIDENT_BEAM_ADJ_ARRAY				= 24
-SYSTEM_CLEANING_ARRAY				= 25
-DOPPLER_CORRECTION_ARRAY			= 26
-SONAR_VERT_UNCERTAINTY_ARRAY		= 27
-SCALE_FACTORS						= 100
-SEABEAM_SPECIFIC					= 102
-EM12_SPECIFIC						= 103
-EM100_SPECIFIC						= 104
-EM950_SPECIFIC						= 105
-EM121A_SPECIFIC						= 106
-EM121_SPECIFIC						= 107
-SASS_SPECIFIC						= 108
-SEAMAP_SPECIFIC						= 109
-SEABAT_SPECIFIC						= 110
-EM1000_SPECIFIC						= 111
-TYPEIII_SEABEAM_SPECIFIC			= 112
-SB_AMP_SPECIFIC						= 113
-SEABAT_II_SPECIFIC					= 114
-SEABAT_8101_SPECIFIC				= 115
-SEABEAM_2112_SPECIFIC				= 116
-ELAC_MKII_SPECIFIC					= 117
-EM3000_SPECIFIC						= 118
-EM1002_SPECIFIC						= 119
-EM300_SPECIFIC						= 120
-CMP_SASS_SPECIFIC					= 121
-RESON_8101_SPECIFIC					= 122   
-RESON_8111_SPECIFIC					= 123   
-RESON_8124_SPECIFIC					= 124   
-RESON_8125_SPECIFIC					= 125   
-RESON_8150_SPECIFIC					= 126   
-RESON_8160_SPECIFIC					= 127   
-EM120_SPECIFIC						= 128
-EM3002_SPECIFIC						= 129
-EM3000D_SPECIFIC					= 130
-EM3002D_SPECIFIC					= 131
-EM121A_SIS_SPECIFIC					= 132
-EM710_SPECIFIC						= 133
-EM302_SPECIFIC						= 134
-EM122_SPECIFIC						= 135
-GEOSWATH_PLUS_SPECIFIC				= 136  
-KLEIN_5410_BSS_SPECIFIC				= 137
-RESON_7125_SPECIFIC					= 138
-EM2000_SPECIFIC						= 139
-EM300_RAW_SPECIFIC					= 140
-EM1002_RAW_SPECIFIC					= 141
-EM2000_RAW_SPECIFIC					= 142
-EM3000_RAW_SPECIFIC					= 143
-EM120_RAW_SPECIFIC					= 144
-EM3002_RAW_SPECIFIC					= 145
-EM3000D_RAW_SPECIFIC				= 146
-EM3002D_RAW_SPECIFIC				= 147
-EM121A_SIS_RAW_SPECIFIC				= 148
-EM2040_SPECIFIC						= 149
-DELTA_T_SPECIFIC					= 150
-R2SONIC_2022_SPECIFIC				= 151
-R2SONIC_2024_SPECIFIC				= 152
-R2SONIC_2020_SPECIFIC				= 153
-SB_ECHOTRAC_SPECIFIC				= 206
-SB_BATHY2000_SPECIFIC				= 207
-SB_MGD77_SPECIFIC					= 208
-SB_BDB_SPECIFIC						= 209
-SB_NOSHDB_SPECIFIC					= 210
-SB_PDD_SPECIFIC						= 211
-SB_NAVISOUND_SPECIFIC				= 212
-
 ###############################################################################
 if __name__ == "__main__":
 	main()
+
+	# def testR2SonicAdjustment():
+# 	'''
+# 	This test code confirms the results are in alignment with those from Norm Campbell at CSIRO who kindly provided the code in F77
+# 	'''
+# 	# adjusted backscatter		  -38.6
+# 	# adjusted backscatter		  -47.6
+# 	# adjusted backscatter		  -27.5
+# 	# adjusted backscatter		  -36.6
+# 	# adjusted backscatter		  -35.5
+
+# 	S1_angle = -58.0
+# 	S1_twtt = 0.20588
+# 	S1_range = 164.8
+# 	H0_TxPower = 197.0
+# 	H0_SoundSpeed = 1468.59
+# 	H0_RxAbsorption = 80.0
+# 	H0_TxBeamWidthVert = 0.0174533
+# 	H0_TxBeamWidthHoriz = 0.0087266
+# 	H0_TxPulseWidth = 0.000275
+# 	H0_RxSpreading = 35.0
+# 	H0_RxGain = 8.0
+# 	H0_VTX_Offset = -21.0 / 100.
+
+# 	n_snpt_val = 470
+# 	S1_uPa = n_snpt_val
+# 	z_snpt_BS_dB = 20. * math.log10(S1_uPa)
+
+# 	adjusted = backscatteradjustment( S1_angle, S1_twtt, S1_range, S1_uPa, H0_TxPower, H0_SoundSpeed, H0_RxAbsorption, H0_TxBeamWidthVert, H0_TxBeamWidthHoriz, H0_TxPulseWidth, H0_RxSpreading, H0_RxGain, H0_VTX_Offset, z_snpt_BS_dB)
+# 	print (adjusted)
+
+# 	S1_angle = -58.0
+# 	S1_twtt = 0.20588
+# 	S1_range = 164.8
+# 	H0_TxPower = 206.0
+# 	H0_SoundSpeed = 1468.59
+# 	H0_RxAbsorption = 80.0
+# 	H0_TxBeamWidthVert = 0.0174533
+# 	H0_TxBeamWidthHoriz = 0.0087266
+# 	H0_TxPulseWidth = 0.000275
+# 	H0_RxSpreading = 35.0
+# 	H0_RxGain = 8.0
+# 	H0_VTX_Offset = -21.0 / 100.
+
+# 	n_snpt_val = 470
+# 	S1_uPa = n_snpt_val
+# 	z_snpt_BS_dB = 20. * math.log10 ( S1_uPa )
+# 	adjusted = backscatteradjustment( S1_angle, S1_twtt, S1_range, S1_uPa, H0_TxPower, H0_SoundSpeed, H0_RxAbsorption, H0_TxBeamWidthVert, H0_TxBeamWidthHoriz, H0_TxPulseWidth, H0_RxSpreading, H0_RxGain, H0_VTX_Offset, z_snpt_BS_dB)
+# 	print (adjusted)
+
+# 	S1_angle = - 58.0
+# 	S1_twtt = 0.20588
+# 	S1_range = 164.8
+# 	H0_TxPower = 197.0
+# 	H0_SoundSpeed = 1468.59
+# 	H0_RxAbsorption = 80.0
+# 	H0_TxBeamWidthVert = 0.0174533
+# 	H0_TxBeamWidthHoriz = 0.0087266
+# 	H0_TxPulseWidth = 0.000275
+# 	H0_RxSpreading = 30.0
+# 	H0_RxGain = 8.0
+# 	H0_VTX_Offset = -21.0 / 100.
+
+# 	n_snpt_val = 470
+# 	S1_uPa = n_snpt_val
+# 	z_snpt_BS_dB = 20. * math.log10 ( S1_uPa )
+# 	adjusted = backscatteradjustment( S1_angle, S1_twtt, S1_range, S1_uPa, H0_TxPower, H0_SoundSpeed, H0_RxAbsorption, H0_TxBeamWidthVert, H0_TxBeamWidthHoriz, H0_TxPulseWidth, H0_RxSpreading, H0_RxGain, H0_VTX_Offset, z_snpt_BS_dB)
+# 	print (adjusted)
+
+# 	S1_angle = - 58.0
+# 	S1_twtt = 0.20588
+# 	S1_range = 164.8
+# 	H0_TxPower = 197.0
+# 	H0_SoundSpeed = 1468.59
+# 	H0_RxAbsorption = 80.0
+# 	H0_TxBeamWidthVert = 0.0174533
+# 	H0_TxBeamWidthHoriz = 0.0087266
+# 	H0_TxPulseWidth = 0.000275
+# 	H0_RxSpreading = 35.0
+# 	H0_RxGain = 6.0
+# 	H0_VTX_Offset = -21.0 / 100.
+
+# 	n_snpt_val = 470
+# 	S1_uPa = n_snpt_val
+# 	z_snpt_BS_dB = 20. * math.log10 ( S1_uPa )
+# 	adjusted = backscatteradjustment( S1_angle, S1_twtt, S1_range, S1_uPa, H0_TxPower, H0_SoundSpeed, H0_RxAbsorption, H0_TxBeamWidthVert, H0_TxBeamWidthHoriz, H0_TxPulseWidth, H0_RxSpreading, H0_RxGain, H0_VTX_Offset, z_snpt_BS_dB)
+# 	print (adjusted)
+
+
+# 	S1_angle = - 58.0
+# 	S1_twtt = 0.20588
+# 	S1_range = 164.8
+# 	H0_TxPower = 207.0
+# 	H0_SoundSpeed = 1468.59
+# 	H0_RxAbsorption = 80.0
+# 	H0_TxBeamWidthVert = 0.0174533
+# 	H0_TxBeamWidthHoriz = 0.0087266
+# 	H0_TxPulseWidth = 0.000275
+# 	H0_RxSpreading = 30.0
+# 	H0_RxGain = 6.0
+# 	H0_VTX_Offset = -21.0 / 100.
+
+# 	n_snpt_val = 470
+# 	S1_uPa = n_snpt_val
+# 	z_snpt_BS_dB = 20. * math.log10 ( S1_uPa )
+# 	adjusted = backscatteradjustment( S1_angle, S1_twtt, S1_range, S1_uPa, H0_TxPower, H0_SoundSpeed, H0_RxAbsorption, H0_TxBeamWidthVert, H0_TxBeamWidthHoriz, H0_TxPulseWidth, H0_RxSpreading, H0_RxGain, H0_VTX_Offset, z_snpt_BS_dB)
+# 	print (adjusted)
+
+# 	return
+
+###############################################################################
+		# if recordidentifier == SWATH_BATHYMETRY:
+		# 	datagram.read()
+		# 	datagram.snippettype = SNIPPET_NONE
+			# print ("%s Lat:%.3f Lon:%.3f Ping:%d Freq:%d Serial %s" % (datagram.currentRecordDateTime(), datagram.latitude, datagram.longitude, datagram.pingnumber, datagram.frequency, datagram.serialnumber))
+
+			# for cross profile plotting
+			# bs = []
+			# for s in datagram.MEAN_REL_AMPLITUDE_ARRAY:
+			# 	if s != 0:
+			# 		bs.append(20 * math.log10(s) - 100)
+			# 	else:
+			# 		bs.append(0)
+
+			# bs = [20 * math.log10(s) - 100 for s in datagram.MEAN_REL_AMPLITUDE_ARRAY]
+			# samplearray = datagram.R2Soniccorrection()
+			# if datagram.frequency == 100000:
+			# 	freq100 = mean(samplearray)
+			# if datagram.frequency == 200000:
+			# 	freq200 = mean(samplearray)
+			# if datagram.frequency == 400000:
+			# 	freq400 = mean(samplearray)
+			# 	# print ("%d,%d,%.3f,%.3f,%.3f" %(pingcount, datagram.pingnumber, freq100, freq200, freq400))
+			# 	print ("%d" %(pingcount))
+			# 	pingcount += 1
+				# if len(bs) > 0:
+				# 	plt.plot(datagram.BEAM_ANGLE_ARRAY, bs, linewidth=0.25, color='blue')
+				# 	plt.ylim([-60,-5])
+				# 	plt.xlim([-60,60])
+				# 	# ax3.plot(datagram.BEAM_ANGLE_ARRAY, datagram.ALONG_TRACK_ARRAY)
+				# 	plt.pause(0.001)
+
+			# datagram.clippolar(-60, 60)
+		# r.fileptr.seek(numberofbytes, 1) # set the file ptr to the end of the record			

@@ -4,6 +4,9 @@ import fnmatch
 from glob import glob
 import shutil
 
+from os import remove
+from shutil import move
+
 ###############################################################################
 def main(*opargs, **kwargs):
 	'''test rig for fileutils'''
@@ -41,6 +44,15 @@ def main(*opargs, **kwargs):
 
 
 
+###############################################################################
+def movefile(sourcefilename, destinationfilename):
+	'''
+	move a file safely
+	'''
+	if os.path.exists(destinationfilename):
+		remove(destinationfilename)
+	if os.path.exists(sourcefilename):
+		move(sourcefilename, destinationfilename)
 
 ###############################################################################
 def renamefileextension(filename, newextension):
